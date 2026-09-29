@@ -1,20 +1,50 @@
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
+# Environment secrets
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+credentials.json
+service-account*.json
+
+# Virtual Environments
 .venv/
-env/
 venv/
-*.log
+env/
+backend/.venv/
+ENV/
+env.bak/
+venv.bak/
 
 # Node
 node_modules/
 dist/
+build/
 .vite/
 
-# Environment secrets
-.env
+# Python Cache & Bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+.pytest_cache/
+.mypy_cache/
 
-# OS
+# IDE & Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs & Temporary
+*.log
+coverage/
+
+# Reference Materials & Archives
+_source_repos/
+*.zip
+
+# Operating System Files
 .DS_Store
 Thumbs.db
+desktop.ini
