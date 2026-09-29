@@ -57,10 +57,24 @@ export default function AnalysisResult({
               <span className="confidence-pill" title="AI Model Confidence">
                 {Math.round((result.confidence || 0.9) * 100)}% Match
               </span>
+              {result.ai_provider === 'gemini' ? (
+                <span className="badge badge-gemini" title="Real-time multimodal Google Gemini inference">
+                  ✨ Powered by Google Gemini
+                </span>
+              ) : (
+                <span className="badge badge-demo" title="Domain-grounded simulation fallback">
+                  🧪 Demo Simulation
+                </span>
+              )}
             </div>
             <h2 className="result-condition-title">{displayCondition}</h2>
             {displaySummary && (
               <p className="result-summary-lead">{displaySummary}</p>
+            )}
+            {result.limitations && (
+              <p className="text-xs text-dim mt-2 italic">
+                * {result.limitations}
+              </p>
             )}
           </div>
 

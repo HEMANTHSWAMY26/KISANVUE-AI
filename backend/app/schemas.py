@@ -8,6 +8,7 @@ class WeatherResponse(BaseModel):
     wind_speed: str = Field(..., example="14 km/h")
     weather_description: str = Field(..., example="Partly Cloudy")
     location: str = Field(..., example="Guntur, Andhra Pradesh, India")
+    is_live: bool = Field(default=True, description="True if retrieved from live Open-Meteo API, False if simulated fallback")
     agro_impact: str = Field(
         ...,
         example="High relative humidity (>75%) coupled with warm temperatures increases fungal sporulation risk and whitefly activity."
@@ -27,6 +28,10 @@ class CropAnalysisResponse(BaseModel):
     escalation_required: bool = Field(default=False)
     weather_context: Optional[Dict[str, Any]] = None
     multilingual: Dict[str, Any] = Field(default_factory=dict)
+    ai_provider: str = Field(default="simulation", description="'gemini' or 'simulation'")
+    limitations: str = Field(
+        default="Based on visual inspection of submitted photo. Not a laboratory or culture-plate diagnosis."
+    )
     disclaimer: str = Field(
         default="AI-assisted agricultural advisory. For severe or rapidly spreading crop problems, consult a qualified agricultural officer or KVK scientist."
     )
@@ -36,15 +41,22 @@ class VerifyCropResponse(BaseModel):
     previous_condition: str = Field(..., example="Chilli Leaf Curl Virus")
     previous_risk_level: str = Field(..., example="HIGH")
     current_risk_level: str = Field(..., example="MEDIUM")
-    recovery_status: str = Field(..., example="SIGNIFICANT_IMPROVEMENT") # SIGNIFICANT_IMPROVEMENT, MODERATE_RECOVERY, STABLE, DETERIORATING
-    recovery_score: int = Field(..., example=78) # 0 to 100
+    risk_before: str = Field(default="HIGH")
+    risk_after: str = Field(default="MEDIUM")
+    recovery_status: str = Field(..., example="IMPROVING") # IMPROVING, STABLE, WORSENING, INCONCLUSIVE
+    recovery_score: int = Field(..., example=78) # 0 to 100 (AI-assisted visual improvement score)
+    visual_improvement_score: int = Field(default=78)
     comparison_summary: str = Field(...)
     observed_changes: List[str] = Field(default_factory=list)
     ongoing_recommendations: List[str] = Field(default_factory=list)
     next_verification_in: str = Field(default="72 hours")
     multilingual: Dict[str, Any] = Field(default_factory=dict)
+    ai_provider: str = Field(default="simulation", description="'gemini' or 'simulation'")
+    limitations: str = Field(
+        default="Based on visual comparison of submitted images. Not a laboratory measurement."
+    )
     disclaimer: str = Field(
-        default="AI-assisted verification progress tracking. Re-verify in 3 days if symptoms persist."
+        default="AI-assisted visual verification tracking. Re-verify in 3 days if symptoms persist."
     )
 
 class ChatAdvisoryRequest(BaseModel):
@@ -57,6 +69,7 @@ class ChatAdvisoryResponse(BaseModel):
     response: str
     speech_text: str
     language: str
+    ai_provider: str = Field(default="simulation", description="'gemini' or 'simulation'")
     suggested_questions: List[str] = Field(default_factory=list)
 
 class TopCropRisk(BaseModel):

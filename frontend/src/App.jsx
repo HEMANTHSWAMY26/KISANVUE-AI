@@ -131,7 +131,8 @@ export default function App() {
         fileToSend = new File([blob], 'chilli_recovered.jpg', { type: 'image/jpeg' });
       }
 
-      const res = await verifyCropRecovery(fileToSend, prevCondition, prevRisk, daysElapsed, currentLang);
+      const baselineSource = analysisResult?.imagePreview || '/samples/chilli_leaf_curl.jpg';
+      const res = await verifyCropRecovery(fileToSend, prevCondition, prevRisk, daysElapsed, currentLang, baselineSource);
       setVerificationResult(res);
     } catch (err) {
       console.error('Verification error:', err);

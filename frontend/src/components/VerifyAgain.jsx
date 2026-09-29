@@ -184,14 +184,26 @@ export default function VerifyAgain({
               <div className="verify-badge-row">
                 <span className="badge badge-healthy text-sm">
                   <ShieldCheck size={16} />
-                  <span>{ml.recovery_status_label || t.statusImproving}</span>
+                  <span>{ml.recovery_status_label || `Status: ${verificationResult.recovery_status || 'IMPROVING'}`}</span>
                 </span>
                 <span className="recovery-score-pill">
-                  Score: <strong>{verificationResult.recovery_score}/100</strong>
+                  AI-Assisted Visual Improvement Score: <strong>{verificationResult.visual_improvement_score || verificationResult.recovery_score}/100</strong>
                 </span>
+                {verificationResult.ai_provider === 'gemini' ? (
+                  <span className="badge badge-gemini" title="Multimodal Google Gemini comparative inference">
+                    ✨ Powered by Google Gemini
+                  </span>
+                ) : (
+                  <span className="badge badge-demo" title="Domain-grounded simulation fallback">
+                    🧪 Demo Simulation
+                  </span>
+                )}
               </div>
-              <h2 className="verify-progress-title">Crop Health Progress: Improving</h2>
+              <h2 className="verify-progress-title">Crop Health Progress: {verificationResult.recovery_status || 'Improving'}</h2>
               <p className="verify-summary-lead">{displaySummary}</p>
+              <p className="text-xs text-dim mt-1 italic">
+                * {verificationResult.limitations || "Based on visual comparison of submitted images. Not a laboratory measurement."}
+              </p>
             </div>
 
             {/* Audio Voice Player */}

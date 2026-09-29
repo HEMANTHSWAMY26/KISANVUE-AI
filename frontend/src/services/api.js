@@ -54,13 +54,19 @@ export async function analyzeCropImage(fileOrBlob, language = 'en', cropHint = '
   return await res.json();
 }
 
-export async function verifyCropRecovery(fileOrBlob, previousCondition, previousRisk, daysElapsed = 5, language = 'en') {
+export async function verifyCropRecovery(fileOrBlob, previousCondition, previousRisk, daysElapsed = 5, language = 'en', baselineFileOrPath = '') {
   const formData = new FormData();
   formData.append('file', fileOrBlob);
   formData.append('previous_condition', previousCondition || 'Chilli Leaf Curl Virus');
   formData.append('previous_risk', previousRisk || 'HIGH');
   formData.append('days_elapsed', daysElapsed);
   formData.append('language', language);
+
+  if (baselineFileOrPath && typeof baselineFileOrPath === 'string') {
+    formData.append('baseline_sample_path', baselineFileOrPath);
+  } else if (baselineFileOrPath && typeof baselineFileOrPath === 'object') {
+    formData.append('baseline_file', baselineFileOrPath);
+  }
 
   const res = await fetch(`${BASE_URL}/api/verify-crop`, {
     method: 'POST',

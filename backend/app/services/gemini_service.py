@@ -1,25 +1,78 @@
 import os
 import json
 import logging
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Tuple
 from app.config import GEMINI_API_KEY, GEMINI_MODEL, FALLBACK_MODELS
-from app.schemas import CropAnalysisResponse, ChatAdvisoryResponse
+from app.schemas import CropAnalysisResponse, VerifyCropResponse, ChatAdvisoryResponse
 
 logger = logging.getLogger("kisanvue.gemini")
 
-# Try importing the official google.genai SDK
+# Official Google GenAI SDK Client Initialization
 genai_client = None
-if GEMINI_API_KEY:
+genai_init_error = None
+
+if GEMINI_API_KEY and len(GEMINI_API_KEY.strip()) > 5:
     try:
         from google import genai
         from google.genai import types
-        genai_client = genai.Client(api_key=GEMINI_API_KEY)
+        genai_client = genai.Client(api_key=GEMINI_API_KEY.strip())
         logger.info("Google GenAI SDK client initialized successfully.")
     except Exception as e:
+        genai_init_error = str(e)
         logger.warning(f"Failed to initialize google.genai client: {e}")
+else:
+    logger.info("GEMINI_API_KEY is not set or empty. Simulation fallback will be used.")
+
+
+def is_gemini_configured() -> bool:
+    """Returns True if the Google GenAI SDK client is actively configured with an API key."""
+    return genai_client is not None
+
+
+async def test_gemini_direct() -> Dict[str, Any]:
+    """
+    Directly tests Gemini connectivity without going through the web UI.
+    Returns status dict with model response or exact error.
+    """
+    if not is_gemini_configured():
+        return {
+            "status": "error",
+            "gemini_connected": False,
+            "error": "GEMINI_API_KEY is missing",
+            "message": "Set GEMINI_API_KEY in backend/.env to enable live Google Gemini calls."
+        }
+
+    for model_name in FALLBACK_MODELS:
+        try:
+            logger.info(f"Direct Gemini connectivity test with model '{model_name}'...")
+            response = genai_client.models.generate_content(
+                model=model_name,
+                contents="Respond with exact JSON: {\"status\": \"ok\", \"engine\": \"google-gemini\", \"agro_ready\": true}",
+            )
+            if response and response.text:
+                return {
+                    "status": "success",
+                    "gemini_connected": True,
+                    "model_used": model_name,
+                    "response": response.text.strip()
+                }
+        except Exception as e:
+            logger.warning(f"Test with {model_name} failed: {e}")
+            return {
+                "status": "error",
+                "gemini_connected": False,
+                "error": str(e)
+            }
+
+    return {
+        "status": "error",
+        "gemini_connected": False,
+        "error": "All model attempts failed"
+    }
+
 
 # -----------------------------------------------------------------------------
-# Curated Domain Agricultural Knowledge Base (Resilient Offline / Demo Engine)
+# Curated Domain Agricultural Knowledge Base (Resilient Simulation Fallback)
 # -----------------------------------------------------------------------------
 KNOWLEDGE_BASE = {
     "chilli": {
@@ -293,7 +346,6 @@ def _select_domain_knowledge(filename_hint: str) -> Dict[str, Any]:
         return KNOWLEDGE_BASE["tomato"]
     elif "healthy" in hint or "leaf_scan" in hint or "leaf_healthy" in hint:
         return KNOWLEDGE_BASE["healthy"]
-    # Default to chilli as the premier hackathon demo profile
     return KNOWLEDGE_BASE["chilli"]
 
 
@@ -305,44 +357,56 @@ async def analyze_crop_image(
     weather_context: Optional[Dict[str, Any]] = None
 ) -> CropAnalysisResponse:
     """
-    Multimodal crop disease detection using Google Gemini.
-    If GEMINI_API_KEY is configured, calls the live Gemini API.
-    If the API call fails or no key is configured, uses domain-grounded knowledge base
-    to ensure seamless, zero-crash execution.
+    Multimodal crop disease detection using Google Gemini SDK.
+    If GEMINI_API_KEY is configured, calls the live Gemini model and sets ai_provider='gemini'.
+    If the API call fails or no key is configured, uses the domain knowledge base
+    and sets ai_provider='simulation' for complete transparency.
     """
-    lang_key = language.lower()
+    lang_key = language.lower() if language else "en"
     if lang_key not in ["en", "te", "hi"]:
         lang_key = "en"
 
-    # 1. Attempt Live Gemini API Call if client is available
-    if genai_client:
+    # 1. LIVE GEMINI MULTIMODAL INFERENCE
+    if is_gemini_configured():
         weather_summary = ""
         if weather_context:
             weather_summary = (
-                f"Current Field Weather: {weather_context.get('temperature', '30°C')}, "
-                f"Humidity: {weather_context.get('humidity', '75%')}, "
-                f"Rain Probability: {weather_context.get('rain_chance', '30%')}."
+                f"Field Weather Context: Temperature: {weather_context.get('temperature', '30°C')}, "
+                f"Relative Humidity: {weather_context.get('humidity', '75%')}, "
+                f"Precipitation Probability: {weather_context.get('rain_chance', '30%')}."
             )
 
         prompt = (
             "You are 'KisanVue AI', an expert agricultural pathologist, agronomist, and crop doctor "
             "specializing in smallholder Indian agriculture (e.g. Chilli, Cotton, Rice, Tomato, Wheat).\n\n"
             f"{weather_summary}\n\n"
-            "Carefully analyze this crop photo and provide a structured agronomic diagnosis:\n"
-            "1. Identify the crop species.\n"
-            "2. Diagnose the exact disease, pest vector, or deficiency (or declare Healthy if clean).\n"
-            "3. Assess risk level: 'HIGH', 'MEDIUM', 'LOW', or 'HEALTHY'.\n"
-            "4. Confidence score (0.0 to 1.0).\n"
-            "5. Detailed visual symptoms observed on leaf/stem/fruit.\n"
-            "6. 3-4 immediate practical actions suitable for an Indian farmer (organic/IPM first, safe dosage).\n"
-            "7. Preventive actions.\n"
-            f"8. Provide localized advisory in language code '{lang_key}' (if 'te' provide in Telugu script, if 'hi' provide in Hindi Devanagari script, if 'en' provide in English)."
+            "Carefully analyze this crop photo and provide a strictly valid JSON diagnostic response:\n"
+            "{\n"
+            '  "crop": "string",\n'
+            '  "condition": "string",\n'
+            '  "risk_level": "HIGH" | "MEDIUM" | "LOW" | "HEALTHY",\n'
+            '  "confidence": float between 0.0 and 1.0,\n'
+            '  "visual_symptoms": ["string", "string"],\n'
+            '  "observations": ["string", "string"],\n'
+            '  "possible_causes": ["string", "string"],\n'
+            '  "immediate_actions": ["3-4 practical, organic/IPM steps for Indian farmer"],\n'
+            '  "preventive_actions": ["2-3 preventive measures"],\n'
+            '  "monitoring_period": "48 hours",\n'
+            '  "escalation_required": boolean,\n'
+            f'  "localized_crop_name": "crop name in requested language {lang_key}",\n'
+            f'  "localized_condition_name": "disease name in requested language {lang_key}",\n'
+            f'  "localized_summary": "2 sentence explanation in requested language {lang_key} script",\n'
+            f'  "localized_immediate_actions": ["action 1 in {lang_key}", "action 2 in {lang_key}"],\n'
+            f'  "speech_advisory": "conversational advice in {lang_key} script to be read aloud to farmer"\n'
+            "}\n"
+            f"Language Rule: For '{lang_key}', write the localized fields in the authentic script: "
+            "if 'te' use Telugu script (తెలుగు), if 'hi' use Hindi Devanagari script (हिंदी), if 'en' use English."
         )
 
         for model_name in FALLBACK_MODELS:
             try:
                 from google.genai import types
-                logger.info(f"Submitting crop image to Gemini model '{model_name}'...")
+                logger.info(f"Submitting crop image to Google Gemini model '{model_name}'...")
                 response = genai_client.models.generate_content(
                     model=model_name,
                     contents=[
@@ -366,30 +430,25 @@ async def analyze_crop_image(
                         clean_text = "\n".join(lines).strip()
 
                     parsed = json.loads(clean_text)
-                    logger.info("Successfully received structured response from Gemini.")
+                    logger.info("Successfully received structured response from Google Gemini!")
 
-                    # Format into response
                     crop_name = parsed.get("crop", "Chilli")
                     condition = parsed.get("condition", "Identified Condition")
-                    risk_level = parsed.get("risk_level", "HIGH").upper()
+                    risk_level = str(parsed.get("risk_level", "HIGH")).upper()
                     if risk_level not in ["HIGH", "MEDIUM", "LOW", "HEALTHY"]:
                         risk_level = "MEDIUM"
 
                     # Build multilingual payload
-                    ml_data = parsed.get("multilingual", {})
-                    if not ml_data:
-                        ml_data = {
-                            lang_key: {
-                                "language": lang_key,
-                                "crop_name": crop_name,
-                                "condition_name": condition,
-                                "risk_level_label": risk_level,
-                                "summary": f"{crop_name}: {condition}",
-                                "immediate_actions": parsed.get("immediate_actions", []),
-                                "preventive_actions": parsed.get("preventive_actions", []),
-                                "speech_advisory": f"{crop_name} diagnosed with {condition}."
-                            }
-                        }
+                    ml_data = {
+                        "language": lang_key,
+                        "crop_name": parsed.get("localized_crop_name") or crop_name,
+                        "condition_name": parsed.get("localized_condition_name") or condition,
+                        "risk_level_label": f"{risk_level} RISK",
+                        "summary": parsed.get("localized_summary") or f"{crop_name}: {condition}",
+                        "immediate_actions": parsed.get("localized_immediate_actions") or parsed.get("immediate_actions", []),
+                        "preventive_actions": parsed.get("preventive_actions", []),
+                        "speech_advisory": parsed.get("speech_advisory") or f"{crop_name} diagnosed with {condition}."
+                    }
 
                     return CropAnalysisResponse(
                         crop=crop_name,
@@ -397,24 +456,24 @@ async def analyze_crop_image(
                         risk_level=risk_level,
                         confidence=float(parsed.get("confidence", 0.92)),
                         visual_symptoms=parsed.get("visual_symptoms", ["Leaf curling", "Vein clearing"]),
-                        observations=parsed.get("observations", ["Symptoms visible across upper foliage"]),
+                        observations=parsed.get("observations", ["Visual symptoms detected across upper canopy"]),
                         possible_causes=parsed.get("possible_causes", ["Infection vector activity"]),
                         immediate_actions=parsed.get("immediate_actions", ["Deploy sticky traps", "Apply bio-spray"]),
                         preventive_actions=parsed.get("preventive_actions", ["Crop rotation", "Clean field bunds"]),
                         monitoring_period=parsed.get("monitoring_period", "48 hours"),
-                        escalation_required=parsed.get("escalation_required", risk_level == "HIGH"),
+                        escalation_required=bool(parsed.get("escalation_required", risk_level == "HIGH")),
                         weather_context=weather_context,
-                        multilingual=ml_data.get(lang_key, ml_data.get("en", {})),
+                        multilingual=ml_data,
+                        ai_provider="gemini",
+                        limitations="Based on visual inspection of submitted photo. Not a laboratory or culture-plate diagnosis.",
                         disclaimer="AI-assisted agricultural advisory. For severe or rapidly spreading crop problems, consult a qualified agricultural officer or KVK scientist."
                     )
             except Exception as e:
-                logger.warning(f"Gemini model '{model_name}' failed: {e}. Trying fallback...")
+                logger.warning(f"Gemini model '{model_name}' invocation failed: {e}. Trying next fallback...")
 
-    # 2. Resilient Domain Agricultural Knowledge Base Fallback
-    logger.info("Engaging KisanVue Agricultural Intelligence Engine fallback...")
+    # 2. SIMULATION FALLBACK (When GEMINI_API_KEY is not configured or offline)
+    logger.info("Engaging KisanVue Agricultural Intelligence Simulation Fallback (ai_provider='simulation')...")
     kb = _select_domain_knowledge(filename_hint)
-    
-    # Extract language-specific section
     selected_ml = kb["multilingual"].get(lang_key, kb["multilingual"]["en"])
 
     return CropAnalysisResponse(
@@ -431,8 +490,139 @@ async def analyze_crop_image(
         escalation_required=kb["escalation_required"],
         weather_context=weather_context,
         multilingual=selected_ml,
+        ai_provider="simulation",
+        limitations="Based on visual inspection of submitted photo. Not a laboratory or culture-plate diagnosis.",
         disclaimer="AI-assisted agricultural advisory. For severe or rapidly spreading crop problems, consult a qualified agricultural officer or KVK scientist."
     )
+
+
+async def verify_crop_with_gemini(
+    baseline_bytes: Optional[bytes],
+    baseline_mime: str,
+    followup_bytes: bytes,
+    followup_mime: str,
+    previous_condition: str,
+    previous_risk: str,
+    days_elapsed: int = 5,
+    language: str = "en"
+) -> VerifyCropResponse:
+    """
+    Closed-loop multimodal verification using Google Gemini:
+    Sends BOTH baseline image and follow-up image to Gemini to evaluate
+    actual recovery trajectory, calculate visual improvement score, and determine ongoing care.
+    """
+    lang_key = language.lower() if language else "en"
+    if lang_key not in ["en", "te", "hi"]:
+        lang_key = "en"
+
+    # 1. LIVE GEMINI COMPARISON (If key is available and baseline bytes provided)
+    if is_gemini_configured() and baseline_bytes:
+        prompt = (
+            "You are an expert plant pathologist conducting a follow-up verification on a crop under recovery.\n\n"
+            f"Context: Baseline Initial Scan was diagnosed with '{previous_condition}' at '{previous_risk}' risk.\n"
+            f"The follow-up image was taken {days_elapsed} days post-advisory after the farmer applied treatment.\n\n"
+            "Compare Image 1 (Baseline: Day 0) vs Image 2 (Follow-up: Day X) side-by-side:\n"
+            "1. Assess whether the visual symptoms (lesion expansion, leaf curl, chlorosis, vector colonies) are receding or progressing.\n"
+            "2. Assign recovery_status: 'IMPROVING', 'STABLE', 'WORSENING', or 'INCONCLUSIVE'.\n"
+            "3. Determine risk_before and risk_after: 'HIGH', 'MEDIUM', 'LOW', or 'HEALTHY'.\n"
+            "4. Calculate an 'ai_assisted_improvement_score' (integer 0 to 100) based strictly on visible changes.\n"
+            "5. List 3 specific observed changes between the two photos.\n"
+            "6. List 3 ongoing care recommendations.\n"
+            f"7. Provide localized summary in requested language '{lang_key}' (if 'te' in Telugu script, if 'hi' in Hindi script, if 'en' in English).\n\n"
+            "Respond in strictly valid JSON matching this schema:\n"
+            "{\n"
+            '  "crop": "string",\n'
+            '  "recovery_status": "IMPROVING" | "STABLE" | "WORSENING" | "INCONCLUSIVE",\n'
+            '  "risk_before": "HIGH" | "MEDIUM" | "LOW",\n'
+            '  "risk_after": "HIGH" | "MEDIUM" | "LOW" | "HEALTHY",\n'
+            '  "ai_assisted_improvement_score": integer between 0 and 100,\n'
+            '  "observed_changes": ["change 1", "change 2", "change 3"],\n'
+            '  "ongoing_recommendations": ["action 1", "action 2"],\n'
+            f'  "localized_summary": "summary in {lang_key}",\n'
+            f'  "localized_speech_summary": "speech text in {lang_key}"\n'
+            "}"
+        )
+
+        for model_name in FALLBACK_MODELS:
+            try:
+                from google.genai import types
+                logger.info(f"Submitting baseline + follow-up images to Gemini model '{model_name}' for Verify-Again...")
+                response = genai_client.models.generate_content(
+                    model=model_name,
+                    contents=[
+                        types.Part.from_bytes(data=baseline_bytes, mime_type=baseline_mime),
+                        types.Part.from_bytes(data=followup_bytes, mime_type=followup_mime),
+                        prompt
+                    ],
+                    config=types.GenerateContentConfig(
+                        response_mime_type="application/json",
+                        temperature=0.2,
+                    )
+                )
+
+                if response and response.text:
+                    clean_text = response.text.strip()
+                    if clean_text.startswith("```"):
+                        lines = clean_text.splitlines()
+                        if lines[0].startswith("```"):
+                            lines = lines[1:]
+                        if lines and lines[-1].startswith("```"):
+                            lines = lines[:-1]
+                        clean_text = "\n".join(lines).strip()
+
+                    parsed = json.loads(clean_text)
+                    logger.info("Successfully received Verify-Again comparative assessment from Gemini!")
+
+                    rec_score = int(parsed.get("ai_assisted_improvement_score", 80))
+                    status_val = parsed.get("recovery_status", "IMPROVING").upper()
+                    r_before = parsed.get("risk_before", previous_risk).upper()
+                    r_after = parsed.get("risk_after", "MEDIUM").upper()
+
+                    ml_data = {
+                        "language": lang_key,
+                        "recovery_status_label": f"Status: {status_val}",
+                        "previous_risk_label": r_before,
+                        "current_risk_label": r_after,
+                        "summary": parsed.get("localized_summary") or f"Crop exhibits {status_val.lower()} status post-treatment.",
+                        "observed_changes": parsed.get("observed_changes", []),
+                        "ongoing_recommendations": parsed.get("ongoing_recommendations", []),
+                        "speech_summary": parsed.get("localized_speech_summary") or parsed.get("localized_summary", "")
+                    }
+
+                    return VerifyCropResponse(
+                        crop=parsed.get("crop", "Chilli"),
+                        previous_condition=previous_condition,
+                        previous_risk_level=r_before,
+                        current_risk_level=r_after,
+                        risk_before=r_before,
+                        risk_after=r_after,
+                        recovery_status=status_val,
+                        recovery_score=rec_score,
+                        visual_improvement_score=rec_score,
+                        comparison_summary=ml_data["summary"],
+                        observed_changes=parsed.get("observed_changes", []),
+                        ongoing_recommendations=parsed.get("ongoing_recommendations", []),
+                        next_verification_in="72 hours",
+                        multilingual=ml_data,
+                        ai_provider="gemini",
+                        limitations="Based on visual comparison of submitted images. Not a laboratory measurement.",
+                        disclaimer="AI-assisted visual verification tracking. Re-verify in 3 days if symptoms persist."
+                    )
+
+            except Exception as e:
+                logger.warning(f"Verify-Again with Gemini model '{model_name}' failed: {e}. Trying fallback...")
+
+    # 2. SIMULATION FALLBACK (When GEMINI_API_KEY is not configured)
+    from app.services.verify_engine import evaluate_crop_verification
+    fallback_res = evaluate_crop_verification(
+        previous_condition=previous_condition,
+        previous_risk=previous_risk,
+        followup_filename_hint="chilli_recovered.jpg",
+        days_elapsed=days_elapsed,
+        language=lang_key
+    )
+    fallback_res.ai_provider = "simulation"
+    return fallback_res
 
 
 async def chat_agronomist_advisor(
@@ -441,22 +631,16 @@ async def chat_agronomist_advisor(
     crop_context: Optional[str] = None,
     condition_context: Optional[str] = None
 ) -> ChatAdvisoryResponse:
-    """
-    Conversational digital agronomist for voice and text farmer queries.
-    Provides clear, short, farmer-ready advice with natural speech phrasing.
-    Supports English, Telugu (తెలుగు), and Hindi (हिंदी).
-    """
+    """Conversational digital agronomist using Google Gemini SDK or simulation fallback."""
     lang_key = language.lower() if language else "en"
     if lang_key not in ["en", "te", "hi"]:
         lang_key = "en"
 
-    # Contextual guidance
     context_str = ""
     if crop_context or condition_context:
         context_str = f"Current Farm Context: Crop is {crop_context or 'Chilli'}, Condition is {condition_context or 'Leaf curl'}."
 
-    # Live Gemini if available
-    if genai_client:
+    if is_gemini_configured():
         system_instruction = (
             "You are 'KisanVue AI Digital Agronomist', a friendly, experienced agricultural extension advisor "
             "speaking directly with an Indian farmer.\n\n"
@@ -489,13 +673,16 @@ async def chat_agronomist_advisor(
                         response=resp_text,
                         speech_text=resp_text,
                         language=lang_key,
+                        ai_provider="gemini",
                         suggested_questions=_get_suggested_questions(lang_key)
                     )
             except Exception as e:
                 logger.warning(f"Gemini agronomist chat with {model_name} failed: {e}")
 
     # Fallback knowledge response
-    return _fallback_chat_response(question, lang_key)
+    fallback = _fallback_chat_response(question, lang_key)
+    fallback.ai_provider = "simulation"
+    return fallback
 
 
 def _get_suggested_questions(lang: str) -> list:
@@ -532,6 +719,7 @@ def _fallback_chat_response(question: str, lang: str) -> ChatAdvisoryResponse:
             response=resp,
             speech_text=resp,
             language="te",
+            ai_provider="simulation",
             suggested_questions=_get_suggested_questions("te")
         )
     elif lang == "hi":
@@ -545,6 +733,7 @@ def _fallback_chat_response(question: str, lang: str) -> ChatAdvisoryResponse:
             response=resp,
             speech_text=resp,
             language="hi",
+            ai_provider="simulation",
             suggested_questions=_get_suggested_questions("hi")
         )
     else:
@@ -558,5 +747,6 @@ def _fallback_chat_response(question: str, lang: str) -> ChatAdvisoryResponse:
             response=resp,
             speech_text=resp,
             language="en",
+            ai_provider="simulation",
             suggested_questions=_get_suggested_questions("en")
         )

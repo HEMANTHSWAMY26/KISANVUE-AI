@@ -15,7 +15,8 @@ from app.config import (
     DEFAULT_LON,
     DEFAULT_LOCATION_NAME,
     PORT,
-    HOST
+    HOST,
+    BASE_DIR
 )
 from app.schemas import (
     WeatherResponse,
@@ -26,8 +27,13 @@ from app.schemas import (
     DashboardStatsResponse
 )
 from app.services.weather_service import get_current_weather
-from app.services.gemini_service import analyze_crop_image, chat_agronomist_advisor
-from app.services.verify_engine import evaluate_crop_verification
+from app.services.gemini_service import (
+    analyze_crop_image, 
+    chat_agronomist_advisor,
+    verify_crop_with_gemini,
+    is_gemini_configured,
+    test_gemini_direct
+)
 from app.services.dashboard_service import get_dashboard_telemetry
 
 # Setup Logging
@@ -53,22 +59,32 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Sample images directory
+SAMPLES_DIR = BASE_DIR.parent / "frontend" / "public" / "samples"
+
 # -----------------------------------------------------------------------------
 # Endpoints
 # -----------------------------------------------------------------------------
 
 @app.get("/api/health", tags=["System"])
 async def health_check():
-    """System health and Gemini model readiness check."""
-    api_ready = bool(GEMINI_API_KEY and len(GEMINI_API_KEY) > 10)
+    """System health, Gemini readiness status, and active AI provider."""
+    ready = is_gemini_configured()
     return {
         "status": "online",
         "service": "KisanVue AI Core",
-        "gemini_ready": api_ready,
+        "gemini_ready": ready,
+        "ai_provider": "gemini" if ready else "simulation",
         "active_model": GEMINI_MODEL,
         "default_hub": DEFAULT_LOCATION_NAME,
         "tagline": "See. Understand. Act. Verify."
     }
+
+
+@app.get("/api/test-gemini", tags=["System"])
+async def test_gemini_endpoint():
+    """Direct test of Google Gemini API connectivity."""
+    return await test_gemini_direct()
 
 
 @app.get("/api/weather", response_model=WeatherResponse, tags=["Weather"])
@@ -134,14 +150,17 @@ async def analyze_crop_endpoint(
 @app.post("/api/verify-crop", response_model=VerifyCropResponse, tags=["Verification"])
 async def verify_crop_endpoint(
     file: UploadFile = File(...),
+    baseline_file: Optional[UploadFile] = File(None),
+    baseline_sample_path: Optional[str] = Form(None),
     previous_condition: str = Form("Chilli Leaf Curl Virus"),
     previous_risk: str = Form("HIGH"),
     days_elapsed: int = Form(5),
     language: str = Form("en")
 ):
     """
-    Verify-Again workflow: Evaluates follow-up crop photo against initial diagnosis.
-    Calculates progress trajectory, risk reduction score, and ongoing recovery advice.
+    Verify-Again workflow: Multimodal comparative analysis of Baseline Image vs Follow-up Image.
+    Sends BOTH images to Google Gemini to assess visual symptom progression,
+    calculate AI-assisted improvement score, and determine ongoing recovery guidance.
     """
     if not file.content_type or not (file.content_type.startswith("image/") or file.content_type == "application/octet-stream"):
         raise HTTPException(
@@ -149,11 +168,35 @@ async def verify_crop_endpoint(
             detail="Please upload a valid follow-up image to verify crop recovery."
         )
 
-    filename = file.filename or "followup.jpg"
-    return evaluate_crop_verification(
+    followup_bytes = await file.read()
+    followup_mime = file.content_type or "image/jpeg"
+
+    # Read baseline image bytes if available
+    baseline_bytes = None
+    baseline_mime = "image/jpeg"
+
+    if baseline_file:
+        baseline_bytes = await baseline_file.read()
+        baseline_mime = baseline_file.content_type or "image/jpeg"
+    elif baseline_sample_path:
+        # Check if local sample file exists
+        clean_name = os.path.basename(baseline_sample_path)
+        sample_file = SAMPLES_DIR / clean_name
+        if sample_file.exists():
+            baseline_bytes = sample_file.read_bytes()
+    else:
+        # Default fallback to chilli_leaf_curl.jpg baseline sample
+        default_baseline = SAMPLES_DIR / "chilli_leaf_curl.jpg"
+        if default_baseline.exists():
+            baseline_bytes = default_baseline.read_bytes()
+
+    return await verify_crop_with_gemini(
+        baseline_bytes=baseline_bytes,
+        baseline_mime=baseline_mime,
+        followup_bytes=followup_bytes,
+        followup_mime=followup_mime,
         previous_condition=previous_condition,
         previous_risk=previous_risk,
-        followup_filename_hint=filename,
         days_elapsed=days_elapsed,
         language=language
     )
