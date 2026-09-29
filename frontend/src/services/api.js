@@ -1,6 +1,26 @@
 // KisanVue AI Frontend API Client
 
-const BASE_URL = ''; // Relative path leverages Vite dev server proxy to localhost:8000
+// Production & Environment Configuration
+// Dynamically resolves API base URL from VITE_API_BASE_URL environment variable,
+// falling back to the public Render backend in production and relative proxy in development.
+const getBaseUrl = () => {
+  const envUrl = import.meta.env.VITE_API_BASE_URL;
+  if (envUrl && typeof envUrl === 'string' && envUrl.trim()) {
+    let clean = envUrl.trim().replace(/\/+$/, '');
+    if (clean.endsWith('/api')) {
+      clean = clean.slice(0, -4);
+    }
+    return clean;
+  }
+  // Production fallback: ensure requests route to Render backend if env var is omitted
+  if (import.meta.env.PROD) {
+    return 'https://kisanvue-ai.onrender.com';
+  }
+  // Local development fallback: relative path leverages Vite dev server proxy to localhost:8000
+  return '';
+};
+
+const BASE_URL = getBaseUrl();
 
 export async function checkSystemHealth() {
   try {
@@ -62,10 +82,20 @@ export async function verifyCropRecovery(fileOrBlob, previousCondition, previous
   formData.append('days_elapsed', daysElapsed);
   formData.append('language', language);
 
-  if (baselineFileOrPath && typeof baselineFileOrPath === 'string') {
-    formData.append('baseline_sample_path', baselineFileOrPath);
-  } else if (baselineFileOrPath && typeof baselineFileOrPath === 'object') {
+  if (baselineFileOrPath && typeof baselineFileOrPath === 'object') {
     formData.append('baseline_file', baselineFileOrPath);
+  } else if (baselineFileOrPath && typeof baselineFileOrPath === 'string') {
+    try {
+      const bRes = await fetch(baselineFileOrPath);
+      if (bRes.ok) {
+        const bBlob = await bRes.blob();
+        formData.append('baseline_file', bBlob, 'baseline.jpg');
+      } else {
+        formData.append('baseline_sample_path', baselineFileOrPath);
+      }
+    } catch {
+      formData.append('baseline_sample_path', baselineFileOrPath);
+    }
   }
 
   const res = await fetch(`${BASE_URL}/api/verify-crop`, {
