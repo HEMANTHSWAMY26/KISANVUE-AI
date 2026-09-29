@@ -32,9 +32,9 @@ def evaluate_crop_verification(
 
     observed_changes = [
         "Unfurling of healthy new vegetative shoots with smooth, uncurled margins",
-        "Arrest of viral curling progression in upper terminal flush",
-        "Reduction in chlorotic yellow mottling; chlorophyll pigmentation normalized across leaf lamina",
-        "Drastic reduction in active whitefly nymph colonies under lower leaf surface"
+        "Visible indicators suggest reduced curling in newly emerging upper leaves",
+        "Chlorotic yellow mottling visibly receding; improved green foliage pigmentation",
+        "No obvious active vector clustering visibly apparent on leaf surfaces"
     ]
 
     ongoing_recommendations = [

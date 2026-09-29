@@ -32,23 +32,32 @@ try:
     client = genai.Client(api_key=api_key)
     print("google.genai.Client created successfully.")
     
-    model_name = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
-    print(f"Calling Gemini model '{model_name}'...")
+    candidate_models = ["gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-flash-latest", "gemini-3.5-flash", "gemini-3.8-flash"]
+    success = False
+    
+    for model_name in candidate_models:
+        try:
+            print(f"Calling Gemini model '{model_name}'...")
+            response = client.models.generate_content(
+                model=model_name,
+                contents="You are an agricultural diagnostic system. Respond strictly with: {'status': 'connected', 'engine': 'Google Gemini'}"
+            )
+            if response and response.text:
+                print("\nRESULT: SUCCESS")
+                print("STATUS: CONNECTED")
+                print("PROVIDER: Google Gemini")
+                print("MODEL USED:", model_name)
+                print("RAW RESPONSE:", response.text.strip())
+                success = True
+                break
+        except Exception as e:
+            print(f"Model '{model_name}' notice: {e}")
 
-    response = client.models.generate_content(
-        model=model_name,
-        contents="You are an agricultural diagnostic system. Respond strictly with: {'status': 'connected', 'engine': 'Google Gemini 2.5 Flash'}"
-    )
-
-    if response and response.text:
-        print("\nRESULT: SUCCESS")
-        print("GEMINI STATUS: CONNECTED")
-        print("MODEL USED:", model_name)
-        print("RAW RESPONSE:", response.text.strip())
+    if success:
         sys.exit(0)
     else:
         print("\nRESULT: FAILED")
-        print("STATUS: Empty response from model")
+        print("STATUS: GEMINI_API_CALL_ERROR")
         sys.exit(1)
 
 except Exception as err:

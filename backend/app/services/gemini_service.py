@@ -42,12 +42,13 @@ async def test_gemini_direct() -> Dict[str, Any]:
             "message": "Set GEMINI_API_KEY in backend/.env to enable live Google Gemini calls."
         }
 
+    last_error = "All model attempts failed"
     for model_name in FALLBACK_MODELS:
         try:
             logger.info(f"Direct Gemini connectivity test with model '{model_name}'...")
             response = genai_client.models.generate_content(
                 model=model_name,
-                contents="Respond with exact JSON: {\"status\": \"ok\", \"engine\": \"google-gemini\", \"agro_ready\": true}",
+                contents='Respond with exact JSON: {"status": "ok", "engine": "google-gemini", "agro_ready": true}',
             )
             if response and response.text:
                 return {
@@ -57,17 +58,13 @@ async def test_gemini_direct() -> Dict[str, Any]:
                     "response": response.text.strip()
                 }
         except Exception as e:
+            last_error = str(e)
             logger.warning(f"Test with {model_name} failed: {e}")
-            return {
-                "status": "error",
-                "gemini_connected": False,
-                "error": str(e)
-            }
 
     return {
         "status": "error",
         "gemini_connected": False,
-        "error": "All model attempts failed"
+        "error": last_error
     }
 
 
@@ -522,13 +519,15 @@ async def verify_crop_with_gemini(
             f"Context: Baseline Initial Scan was diagnosed with '{previous_condition}' at '{previous_risk}' risk.\n"
             f"The follow-up image was taken {days_elapsed} days post-advisory after the farmer applied treatment.\n\n"
             "Compare Image 1 (Baseline: Day 0) vs Image 2 (Follow-up: Day X) side-by-side:\n"
-            "1. Assess whether the visual symptoms (lesion expansion, leaf curl, chlorosis, vector colonies) are receding or progressing.\n"
-            "2. Assign recovery_status: 'IMPROVING', 'STABLE', 'WORSENING', or 'INCONCLUSIVE'.\n"
-            "3. Determine risk_before and risk_after: 'HIGH', 'MEDIUM', 'LOW', or 'HEALTHY'.\n"
-            "4. Calculate an 'ai_assisted_improvement_score' (integer 0 to 100) based strictly on visible changes.\n"
-            "5. List 3 specific observed changes between the two photos.\n"
-            "6. List 3 ongoing care recommendations.\n"
-            f"7. Provide localized summary in requested language '{lang_key}' (if 'te' in Telugu script, if 'hi' in Hindi script, if 'en' in English).\n\n"
+            "1. Assess whether visible indicators suggest improvement, stability, worsening, or inconclusive result.\n"
+            "2. SCIENTIFIC SAFETY: Do NOT claim photographs prove virus elimination, laboratory diagnosis, pathogen count, or vector population reduction. Use phrasing like 'AI-assisted visual assessment', 'Visible indicators suggest improvement', 'Based on visual comparison of submitted images. Not a laboratory measurement.'\n"
+            "3. Assign recovery_status: strictly one of 'IMPROVING', 'STABLE', 'WORSENING', or 'INCONCLUSIVE'.\n"
+            "4. Determine risk_before and risk_after: 'HIGH', 'MEDIUM', 'LOW', or 'HEALTHY'.\n"
+            "5. Calculate an 'ai_assisted_improvement_score' (integer 0 to 100) based strictly on visible changes.\n"
+            "6. List 3 specific observed visible changes between the two photos.\n"
+            "7. List 3 ongoing care recommendations.\n"
+            f"8. Provide localized summary in requested language '{lang_key}' (if 'te' in Telugu script, if 'hi' in Hindi script, if 'en' in English).\n\n"
+
             "Respond in strictly valid JSON matching this schema:\n"
             "{\n"
             '  "crop": "string",\n'
