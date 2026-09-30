@@ -82,7 +82,48 @@ async def run_tests():
     assert sat_guntur["vegetation_status"] in ["HEALTHY", "MODERATE", "STRESSED", "CRITICAL"]
     assert sat_guntur["vegetation_trend"] in ["IMPROVING", "STABLE", "DECLINING", "INCONCLUSIVE"]
 
-    print("\nALL BACKEND UNIT TESTS (INCLUDING SATELLITE INTELLIGENCE) PASSED SUCCESSFULLY!")
+    print("\n--- 8. Testing Soil Intelligence Service (SoilGrids / Demo) ---")
+    from app.soil_service import get_soil_intelligence
+    soil_guntur = await get_soil_intelligence(latitude=16.3067, longitude=80.4365)
+    print("Soil Mode:", soil_guntur["mode"], "Source:", soil_guntur["source"])
+    print("SOC:", soil_guntur["organic_carbon"], "Clay%:", soil_guntur["clay_percent"], "Texture:", soil_guntur["soil_texture_class"])
+    print("Soil Context:", soil_guntur["soil_context"])
+    assert soil_guntur["available"] is True
+    assert soil_guntur["clay_percent"] is not None
+    assert soil_guntur["sand_percent"] is not None
+    assert soil_guntur["organic_carbon"] is not None
+
+    print("\n--- 9. Testing Crop Recommendation Engine & Regenerative Options ---")
+    from app.crop_recommendation_service import generate_crop_recommendations
+    recs = await generate_crop_recommendations(
+        current_crop="Chilli",
+        soil_context=soil_guntur,
+        weather_context=weather.model_dump(),
+        satellite_context=sat_guntur,
+        language="en"
+    )
+    print("Recs Provider:", recs["ai_provider"], "Season:", recs["season"])
+    print("Recommended Crops:", len(recs["recommended_crops"]))
+    for c in recs["recommended_crops"]:
+        print("  *", c["crop"], "| Risk:", c["risk"])
+    print("Regenerative Options:", len(recs["regenerative_options"]))
+    for ro in recs["regenerative_options"]:
+        print("  ->", ro["practice"], "| Benefit:", ro["benefit"][:50])
+    assert len(recs["recommended_crops"]) >= 2
+    assert len(recs["regenerative_options"]) >= 2
+
+    print("\n--- 10. Testing Unified Farm Intelligence Orchestrator ---")
+    from app.farm_intelligence_service import get_unified_farm_intelligence
+    farm_res = await get_unified_farm_intelligence(latitude=16.3067, longitude=80.4365, crop_hint="Chilli")
+    print("Farm Status:", farm_res["status"], "Location:", farm_res["location_name"])
+    print("Weather Layer:", farm_res["weather"]["temperature"])
+    print("Satellite Layer:", farm_res["satellite"]["source"], farm_res["satellite"].get("ndvi"))
+    print("Soil Layer:", farm_res["soil"]["source"], farm_res["soil"].get("soil_texture_class"))
+    print("Recommendations Layer:", len(farm_res["recommendations"].get("recommended_crops", [])))
+    assert farm_res["status"] == "success"
+    assert "transparency_flags" in farm_res
+
+    print("\nALL BACKEND UNIT TESTS (WEATHER, GEMINI, SATELLITE, SOIL, RECOMMENDATIONS) PASSED SUCCESSFULLY!")
 
 if __name__ == "__main__":
     asyncio.run(run_tests())

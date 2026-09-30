@@ -8,7 +8,9 @@ import {
   askAgronomist, 
   fetchDashboardTelemetry, 
   fetchSampleCrops,
-  fetchSatelliteIntelligence
+  fetchSatelliteIntelligence,
+  fetchSoilIntelligence,
+  fetchUnifiedFarmIntelligence
 } from './services/api';
 
 import Header from './components/Header';
@@ -20,6 +22,7 @@ import VerifyAgain from './components/VerifyAgain';
 import VoiceAgronomist from './components/VoiceAgronomist';
 import IntelligenceDashboard from './components/IntelligenceDashboard';
 import ArchitectureModal from './components/ArchitectureModal';
+import FarmSnapshot from './components/FarmSnapshot';
 
 export default function App() {
   const [currentLang, setCurrentLang] = useState('en');
@@ -29,6 +32,8 @@ export default function App() {
   const [systemStatus, setSystemStatus] = useState({ gemini_ready: false });
   const [weather, setWeather] = useState(null);
   const [satelliteData, setSatelliteData] = useState(null);
+  const [soilData, setSoilData] = useState(null);
+  const [farmSnapshot, setFarmSnapshot] = useState(null);
   const [sampleCrops, setSampleCrops] = useState([]);
   const [telemetry, setTelemetry] = useState(null);
 
@@ -52,20 +57,24 @@ export default function App() {
   // Active translation dictionary
   const t = translations[currentLang] || translations.en;
 
-  // Initial Load: Health, Weather, Satellite, Samples, Dashboard
+  // Initial Load: Health, Weather, Satellite, Soil, Unified Farm, Samples, Dashboard
   useEffect(() => {
     async function initApp() {
       try {
-        const [healthRes, weatherRes, satRes, samplesRes, dashRes] = await Promise.all([
+        const [healthRes, weatherRes, satRes, soilRes, farmRes, samplesRes, dashRes] = await Promise.all([
           checkSystemHealth(),
           fetchLiveWeather(),
           fetchSatelliteIntelligence(),
+          fetchSoilIntelligence(),
+          fetchUnifiedFarmIntelligence(),
           fetchSampleCrops(),
           fetchDashboardTelemetry()
         ]);
         setSystemStatus(healthRes);
         setWeather(weatherRes);
         setSatelliteData(satRes);
+        setSoilData(soilRes);
+        setFarmSnapshot(farmRes);
         setSampleCrops(samplesRes);
         setTelemetry(dashRes);
       } catch (err) {
@@ -97,6 +106,9 @@ export default function App() {
       result.imagePreview = previewUrl;
       if (!result.satellite_context && satelliteData) {
         result.satellite_context = satelliteData;
+      }
+      if (!result.soil_context && soilData) {
+        result.soil_context = soilData;
       }
 
       setTimeout(() => {
@@ -183,15 +195,20 @@ export default function App() {
           {activeTab === 'scan' && (
             <>
               {!analysisResult ? (
-                <CropScanner 
-                  onAnalyze={handleAnalyzeCrop}
-                  isAnalyzing={isAnalyzing}
-                  scanStep={scanStep}
-                  error={analysisError}
-                  sampleCrops={sampleCrops}
-                  currentLang={currentLang}
-                  t={t}
-                />
+                <>
+                  {/* Unified Farm Intelligence Snapshot */}
+                  {farmSnapshot && <FarmSnapshot farmData={farmSnapshot} t={t} />}
+
+                  <CropScanner 
+                    onAnalyze={handleAnalyzeCrop}
+                    isAnalyzing={isAnalyzing}
+                    scanStep={scanStep}
+                    error={analysisError}
+                    sampleCrops={sampleCrops}
+                    currentLang={currentLang}
+                    t={t}
+                  />
+                </>
               ) : (
                 <AnalysisResult 
                   result={analysisResult}
@@ -234,6 +251,7 @@ export default function App() {
             <IntelligenceDashboard 
               telemetry={telemetry}
               satelliteData={satelliteData}
+              soilData={soilData}
               t={t}
             />
           )}

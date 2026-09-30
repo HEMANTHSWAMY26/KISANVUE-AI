@@ -28,6 +28,8 @@ class CropAnalysisResponse(BaseModel):
     escalation_required: bool = Field(default=False)
     weather_context: Optional[Dict[str, Any]] = None
     satellite_context: Optional[Dict[str, Any]] = None
+    soil_context: Optional[Dict[str, Any]] = None
+    crop_recommendations: Optional[Dict[str, Any]] = None
     multilingual: Dict[str, Any] = Field(default_factory=dict)
     ai_provider: str = Field(default="simulation", description="'gemini' or 'simulation'")
     limitations: str = Field(
@@ -56,6 +58,59 @@ class SatelliteResponse(BaseModel):
     historical_observations: Optional[List[Dict[str, Any]]] = None
     interpretation_notes: Optional[Dict[str, str]] = None
     limitations: Optional[str] = None
+
+class SoilResponse(BaseModel):
+    available: bool = Field(..., description="Whether soil intelligence is available")
+    mode: str = Field(..., description="'real', 'demo', or 'unavailable'")
+    source: str = Field(default="SoilGrids", description="Data source name e.g. SoilGrids")
+    latitude: float
+    longitude: float
+    organic_carbon: Optional[float] = None
+    organic_carbon_unit: str = Field(default="g/kg")
+    clay_percent: Optional[float] = None
+    sand_percent: Optional[float] = None
+    silt_percent: Optional[float] = None
+    soil_texture_class: Optional[str] = None
+    soil_context: Optional[str] = None
+    confidence: Optional[str] = Field(default="MEDIUM")
+    is_demo: bool = Field(default=False)
+    zone_reference: Optional[str] = None
+    message: Optional[str] = None
+    disclaimer: Optional[str] = None
+
+class RecommendedCrop(BaseModel):
+    crop: str
+    reason: str
+    soil_fit: str
+    weather_fit: str
+    water_need: str
+    risk: str = Field(default="LOW")
+
+class RegenerativeOption(BaseModel):
+    practice: str
+    benefit: str
+    reason: str
+
+class CropRecommendationResponse(BaseModel):
+    status: str = "success"
+    ai_provider: str = Field(default="gemini")
+    season: str
+    farmer_objective: str = "sustainable_yield"
+    recommended_crops: List[RecommendedCrop] = Field(default_factory=list)
+    regenerative_options: List[RegenerativeOption] = Field(default_factory=list)
+    agronomic_summary: Optional[str] = None
+    environmental_inputs: Optional[Dict[str, Any]] = None
+
+class FarmIntelligenceResponse(BaseModel):
+    status: str = "success"
+    latitude: float
+    longitude: float
+    location_name: str
+    weather: Dict[str, Any]
+    satellite: Dict[str, Any]
+    soil: Dict[str, Any]
+    recommendations: Dict[str, Any]
+    transparency_flags: Dict[str, Any]
 
 class VerifyCropResponse(BaseModel):
     crop: str = Field(..., example="Chilli")

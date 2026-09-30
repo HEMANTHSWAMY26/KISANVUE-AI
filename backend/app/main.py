@@ -22,6 +22,9 @@ from app.schemas import (
     WeatherResponse,
     CropAnalysisResponse,
     SatelliteResponse,
+    SoilResponse,
+    CropRecommendationResponse,
+    FarmIntelligenceResponse,
     VerifyCropResponse,
     ChatAdvisoryRequest,
     ChatAdvisoryResponse,
@@ -37,6 +40,9 @@ from app.services.gemini_service import (
 )
 from app.services.dashboard_service import get_dashboard_telemetry
 from app.satellite_service import get_satellite_intelligence
+from app.soil_service import get_soil_intelligence
+from app.crop_recommendation_service import generate_crop_recommendations
+from app.farm_intelligence_service import get_unified_farm_intelligence
 
 # Setup Logging
 logging.basicConfig(
@@ -133,6 +139,80 @@ async def satellite_endpoint(
     )
 
 
+@app.get("/api/soil", response_model=SoilResponse, tags=["Soil"])
+async def soil_endpoint(
+    latitude: Optional[float] = Query(None, description="Field latitude"),
+    longitude: Optional[float] = Query(None, description="Field longitude"),
+    lat: Optional[float] = Query(None, description="Latitude shorthand alias"),
+    lon: Optional[float] = Query(None, description="Longitude shorthand alias")
+):
+    """
+    Soil Intelligence via SoilGrids 250m global REST API.
+    Provides Soil Organic Carbon (SOC), Clay %, Sand %, Silt %, and texture context.
+    Falls back cleanly to domain-calibrated Demo mode with explicit demo labeling
+    when SoilGrids API access is unavailable.
+    """
+    target_lat = latitude if latitude is not None else lat
+    target_lon = longitude if longitude is not None else lon
+    return await get_soil_intelligence(latitude=target_lat, longitude=target_lon)
+
+
+@app.get("/api/recommend-crops", response_model=CropRecommendationResponse, tags=["Recommendations"])
+async def crop_recommendation_endpoint(
+    crop: Optional[str] = Query("Chilli", description="Current or focus crop"),
+    latitude: Optional[float] = Query(None),
+    longitude: Optional[float] = Query(None),
+    lat: Optional[float] = Query(None),
+    lon: Optional[float] = Query(None),
+    season: Optional[str] = Query(None),
+    objective: str = Query("sustainable_yield", description="Farmer objective"),
+    language: str = Query("en")
+):
+    """
+    Multimodal Crop Recommendation & Regenerative Agriculture Engine.
+    Combines CROP + SOIL + WEATHER + SATELLITE + SEASON using Google Gemini reasoning.
+    """
+    target_lat = latitude if latitude is not None else lat
+    target_lon = longitude if longitude is not None else lon
+    weather_res = await get_current_weather(lat=target_lat, lon=target_lon)
+    sat_res = await get_satellite_intelligence(latitude=target_lat, longitude=target_lon)
+    soil_res = await get_soil_intelligence(latitude=target_lat, longitude=target_lon)
+    return await generate_crop_recommendations(
+        current_crop=crop,
+        soil_context=soil_res,
+        weather_context=weather_res.model_dump(),
+        satellite_context=sat_res,
+        season=season,
+        farmer_objective=objective,
+        language=language
+    )
+
+
+@app.get("/api/farm-intelligence", response_model=FarmIntelligenceResponse, tags=["Farm Intelligence"])
+async def farm_intelligence_endpoint(
+    latitude: Optional[float] = Query(None),
+    longitude: Optional[float] = Query(None),
+    lat: Optional[float] = Query(None),
+    lon: Optional[float] = Query(None),
+    crop: Optional[str] = Query("Chilli"),
+    language: str = Query("en"),
+    objective: str = Query("sustainable_yield")
+):
+    """
+    Unified Farm Intelligence Orchestrator.
+    Combines Location, Weather, Satellite, Soil, Crop Recommendations, and Regenerative Options.
+    """
+    target_lat = latitude if latitude is not None else lat
+    target_lon = longitude if longitude is not None else lon
+    return await get_unified_farm_intelligence(
+        latitude=target_lat,
+        longitude=target_lon,
+        crop_hint=crop,
+        language=language,
+        farmer_objective=objective
+    )
+
+
 @app.post("/api/analyze-crop", response_model=CropAnalysisResponse, tags=["Analysis"])
 async def analyze_crop_endpoint(
     file: UploadFile = File(...),
@@ -166,13 +246,23 @@ async def analyze_crop_endpoint(
             detail="Image size exceeds the 20MB limit. Please provide a lighter image."
         )
 
-    # 2. Get Weather & Satellite Environmental Context
+    # 2. Get Weather, Satellite & Soil Environmental Telemetry Concurrently
     weather_res = await get_current_weather(lat=lat, lon=lon)
     weather_dict = weather_res.model_dump()
 
     satellite_res = await get_satellite_intelligence(latitude=lat, longitude=lon)
+    soil_res = await get_soil_intelligence(latitude=lat, longitude=lon)
 
-    # 3. Analyze with Gemini Service
+    # 3. Generate Crop & Regenerative Options Context
+    crop_recs = await generate_crop_recommendations(
+        current_crop=crop_hint or "Chilli",
+        soil_context=soil_res,
+        weather_context=weather_dict,
+        satellite_context=satellite_res,
+        language=language
+    )
+
+    # 4. Analyze with Gemini Multimodal Pathologist Service
     filename = file.filename or crop_hint or "crop.jpg"
     result = await analyze_crop_image(
         image_bytes=image_bytes,
@@ -180,7 +270,9 @@ async def analyze_crop_endpoint(
         language=language,
         filename_hint=f"{filename} {crop_hint}",
         weather_context=weather_dict,
-        satellite_context=satellite_res
+        satellite_context=satellite_res,
+        soil_context=soil_res,
+        crop_recommendations=crop_recs
     )
 
     return result

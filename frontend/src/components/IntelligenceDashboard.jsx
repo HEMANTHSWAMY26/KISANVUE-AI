@@ -9,8 +9,9 @@ import {
   Info
 } from 'lucide-react';
 import SatelliteIntelligence from './SatelliteIntelligence';
+import SoilCard from './SoilCard';
 
-export default function IntelligenceDashboard({ telemetry, satelliteData, t }) {
+export default function IntelligenceDashboard({ telemetry, satelliteData, soilData, t }) {
   if (!telemetry) return null;
 
   const topCrops = telemetry.top_risk_crops || [];
@@ -115,6 +116,13 @@ export default function IntelligenceDashboard({ telemetry, satelliteData, t }) {
       {satelliteData && (
         <div className="dash-satellite-wrap mt-4">
           <SatelliteIntelligence satelliteData={satelliteData} t={t} />
+        </div>
+      )}
+
+      {/* Soil Intelligence Telemetry */}
+      {soilData && (
+        <div className="dash-soil-wrap mt-4">
+          <SoilCard soilData={soilData} t={t} />
         </div>
       )}
 

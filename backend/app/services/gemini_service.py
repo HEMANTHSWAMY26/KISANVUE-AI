@@ -352,14 +352,16 @@ async def analyze_crop_image(
     language: str = "en",
     filename_hint: str = "",
     weather_context: Optional[Dict[str, Any]] = None,
-    satellite_context: Optional[Dict[str, Any]] = None
+    satellite_context: Optional[Dict[str, Any]] = None,
+    soil_context: Optional[Dict[str, Any]] = None,
+    crop_recommendations: Optional[Dict[str, Any]] = None
 ) -> CropAnalysisResponse:
     """
     Multimodal crop disease detection using Google Gemini SDK.
     If GEMINI_API_KEY is configured, calls the live Gemini model and sets ai_provider='gemini'.
     If the API call fails or no key is configured, uses the domain knowledge base
     and sets ai_provider='simulation' for complete transparency.
-    Optionally receives satellite environmental context (NDVI, NDWI, vegetation status, trend).
+    Optionally receives satellite, soil, and crop recommendations environmental context.
     """
     lang_key = language.lower() if language else "en"
     if lang_key not in ["en", "te", "hi"]:
@@ -389,11 +391,24 @@ async def analyze_crop_image(
         else:
             satellite_summary = "Satellite Intelligence: satellite_available = false (No satellite data available; do NOT invent satellite metrics)."
 
+        soil_summary = ""
+        if soil_context and soil_context.get("available"):
+            soil_summary = (
+                f"Soil Profile Context ({soil_context.get('source', 'SoilGrids')} [{soil_context.get('mode', 'real')}]):\n"
+                f"- Soil Texture Class: {soil_context.get('soil_texture_class', 'Loam')}\n"
+                f"- Organic Carbon: {soil_context.get('organic_carbon', 'N/A')} g/kg\n"
+                f"- Clay: {soil_context.get('clay_percent', 'N/A')}%, Sand: {soil_context.get('sand_percent', 'N/A')}%, Silt: {soil_context.get('silt_percent', 'N/A')}%\n"
+                "Soil Data Constraint: Refer only to these specific soil properties. Do NOT invent laboratory soil metrics."
+            )
+        else:
+            soil_summary = "Soil Intelligence: soil_available = false (No soil data available; do NOT invent soil metrics)."
+
         prompt = (
             "You are 'KisanVue AI', an expert agricultural pathologist, agronomist, and crop doctor "
             "specializing in smallholder Indian agriculture (e.g. Chilli, Cotton, Rice, Tomato, Wheat).\n\n"
             f"{weather_summary}\n\n"
             f"{satellite_summary}\n\n"
+            f"{soil_summary}\n\n"
             "Carefully analyze this crop photo and provide a strictly valid JSON diagnostic response:\n"
             "{\n"
             '  "crop": "string",\n'
@@ -478,6 +493,8 @@ async def analyze_crop_image(
                         escalation_required=bool(parsed.get("escalation_required", risk_level == "HIGH")),
                         weather_context=weather_context,
                         satellite_context=satellite_context,
+                        soil_context=soil_context,
+                        crop_recommendations=crop_recommendations,
                         multilingual=ml_data,
                         ai_provider="gemini",
                         limitations="Based on visual inspection of submitted photo. Not a laboratory or culture-plate diagnosis.",
@@ -505,6 +522,8 @@ async def analyze_crop_image(
         escalation_required=kb["escalation_required"],
         weather_context=weather_context,
         satellite_context=satellite_context,
+        soil_context=soil_context,
+        crop_recommendations=crop_recommendations,
         multilingual=selected_ml,
         ai_provider="simulation",
         limitations="Based on visual inspection of submitted photo. Not a laboratory or culture-plate diagnosis.",

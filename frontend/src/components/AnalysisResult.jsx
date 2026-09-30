@@ -14,6 +14,8 @@ import {
 } from 'lucide-react';
 import AudioPlayer from './AudioPlayer';
 import SatelliteIntelligence from './SatelliteIntelligence';
+import SoilCard from './SoilCard';
+import CropRecommendations from './CropRecommendations';
 
 export default function AnalysisResult({ 
   result, 
@@ -190,6 +192,16 @@ export default function AnalysisResult({
       {/* Satellite Environmental Context (Sentinel-2 / Demo Mode) */}
       {result.satellite_context && (
         <SatelliteIntelligence satelliteData={result.satellite_context} t={t} />
+      )}
+
+      {/* Soil Intelligence Context (SoilGrids / Demo Mode) */}
+      {result.soil_context && (
+        <SoilCard soilData={result.soil_context} t={t} />
+      )}
+
+      {/* Multimodal Crop Recommendation & Regenerative Agriculture Engine */}
+      {result.crop_recommendations && (
+        <CropRecommendations recommendations={result.crop_recommendations} t={t} />
       )}
 
       {/* Signature Action Bar: Verify Again & Ask Agronomist */}

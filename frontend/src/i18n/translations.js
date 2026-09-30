@@ -61,6 +61,27 @@ export const translations = {
     realSatelliteBadge: "Sentinel-2 Live",
     satelliteNotice: "Environmental context for field canopy, not a clinical pathology diagnosis.",
     
+    // Soil Intelligence
+    soilTitle: "Soil Intelligence",
+    organicCarbon: "Organic Carbon",
+    clayPercent: "Clay",
+    sandPercent: "Sand",
+    siltPercent: "Silt",
+    soilContext: "Soil Texture Context",
+    demoSoilBadge: "Demo Soil Intelligence",
+    realSoilBadge: "SoilGrids Live",
+    soilDisclaimer: "Soil texture context based on 250m gridded estimation; does not replace laboratory soil testing.",
+    
+    // Crop & Regenerative Recommendations
+    recommendationTitle: "Crop & Regenerative Strategy",
+    recommendedCrops: "Recommended Succession & Rotation Crops",
+    regenerativeTitle: "Regenerative Agriculture Practices",
+    farmSnapshotTitle: "Unified Farm Intelligence",
+    soilFit: "Soil Texture Match",
+    weatherFit: "Climate Adaptation",
+    waterNeed: "Water Requirement",
+    potentialBenefit: "Potential Regenerative Benefit",
+    
     // Verify Again Workflow
     verifyTitle: "Crop Health Verification Engine",
     verifySubtitle: "Compare baseline diagnostic scan against follow-up field photo to verify treatment efficacy.",
@@ -162,6 +183,27 @@ export const translations = {
     realSatelliteBadge: "సెంటినెల్-2 ప్రత్యక్ష సమాచారం",
     satelliteNotice: "పొలంలోని పైరు విస్తీర్ణ సూచిక మాత్రమే; ఇది ల్యాబ్ రోగ నిర్ధారణ కాదు.",
     
+    // Soil Intelligence
+    soilTitle: "నేల విశ్లేషణ (Soil Intelligence)",
+    organicCarbon: "సేంద్రియ కర్బనం (Organic Carbon)",
+    clayPercent: "బంకమట్టి (Clay)",
+    sandPercent: "ఇసుక (Sand)",
+    siltPercent: "వండలి (Silt)",
+    soilContext: "మట్టి రకం & స్వభావం",
+    demoSoilBadge: "డెమో నేల సమాచారం",
+    realSoilBadge: "సాయిల్‌గ్రిడ్స్ ప్రత్యక్షం",
+    soilDisclaimer: "మట్టి నమూనాల అంచనా మాత్రమే; ప్రయోగశాల పరీక్షకు ప్రత్యామ్నాయం కాదు.",
+    
+    // Crop & Regenerative Recommendations
+    recommendationTitle: "పంట మార్పిడి & పునరుత్పాదక సలహాలు",
+    recommendedCrops: "సిఫార్సు చేసిన మార్పిడి పంటలు",
+    regenerativeTitle: "పునరుత్పాదక వ్యవసాయ పద్ధతులు",
+    farmSnapshotTitle: "సమగ్ర వ్యవసాయ నిఘా",
+    soilFit: "నేల అనుకూలత",
+    weatherFit: "వాతావరణ అనుకూలత",
+    waterNeed: "నీటి అవసరం",
+    potentialBenefit: "ఆశించే పర్యావరణ ప్రయోజనం",
+    
     // Verify Again Workflow
     verifyTitle: "పంట పురోగతి ధృవీకరణ వ్యవస్థ",
     verifySubtitle: "మొదటి స్కాన్ మరియు ప్రస్తుత ఫోటోను పోల్చి పంట ఎంతవరకు కోలుకుందో తెలుసుకోండి.",
@@ -262,6 +304,27 @@ export const translations = {
     demoSatelliteBadge: "डेमो उपग्रह डेटा",
     realSatelliteBadge: "सेंटिनल-2 लाइव डेटा",
     satelliteNotice: "खेत की हरियाली का पर्यावरणीय संदर्भ; यह लैब आधारित रोग निदान नहीं है।",
+    
+    // Soil Intelligence
+    soilTitle: "मृदा विश्लेषण (Soil Intelligence)",
+    organicCarbon: "जैविक कार्बन (Organic Carbon)",
+    clayPercent: "चिकनी मिट्टी (Clay)",
+    sandPercent: "बालू (Sand)",
+    siltPercent: "गाद (Silt)",
+    soilContext: "मृदा बनावट और संदर्भ",
+    demoSoilBadge: "डेमो मृदा डेटा",
+    realSoilBadge: "सॉइलग्रिड्स लाइव डेटा",
+    soilDisclaimer: "250 मीटर ग्रिड आधारित क्षेत्रीय अनुमान; प्रयोगशाला परीक्षण का विकल्प नहीं।",
+    
+    // Crop & Regenerative Recommendations
+    recommendationTitle: "फसल चक्र एवं पुनर्योजी कृषि",
+    recommendedCrops: "अनुशंसित फसलें (फसल चक्र)",
+    regenerativeTitle: "पुनर्योजी कृषि पद्धतियाँ",
+    farmSnapshotTitle: "एकीकृत कृषि परिदृश्य",
+    soilFit: "मृदा अनुकूलता",
+    weatherFit: "जलवायु अनुकूलता",
+    waterNeed: "पानी की आवश्यकता",
+    potentialBenefit: "संभावित पारिस्थितिक लाभ",
     
     // Verify Again Workflow
     verifyTitle: "फसल स्वास्थ्य पुनर्परीक्षण इंजन (Verify Again)",

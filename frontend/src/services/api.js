@@ -84,6 +84,104 @@ export async function fetchSatelliteIntelligence(lat, lon) {
   }
 }
 
+export async function fetchSoilIntelligence(lat, lon) {
+  try {
+    const query = lat && lon ? `?latitude=${lat}&longitude=${lon}` : '';
+    const res = await fetch(`${BASE_URL}/api/soil${query}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    console.warn('Soil intelligence lookup failed, using simulated fallback:', err);
+    return {
+      available: true,
+      mode: 'demo',
+      source: 'SoilGrids (Simulated)',
+      latitude: lat || 16.3067,
+      longitude: lon || 80.4365,
+      organic_carbon: 8.4,
+      organic_carbon_unit: 'g/kg',
+      clay_percent: 44.5,
+      sand_percent: 28.2,
+      silt_percent: 27.3,
+      soil_texture_class: 'Clay (Deep Black Cotton / Vertisol)',
+      soil_context: 'Simulated soil profile: Heavy clay-rich vertisol with moderate organic carbon context. High water retention capacity, suitable for deep-rooted crops like Chilli and Cotton.',
+      confidence: 'MEDIUM',
+      is_demo: true,
+      message: 'Demo Soil Intelligence'
+    };
+  }
+}
+
+export async function fetchCropRecommendations(crop = 'Chilli', lat = null, lon = null, season = '', objective = 'sustainable_yield', language = 'en') {
+  try {
+    const params = new URLSearchParams({
+      crop: crop || 'Chilli',
+      language,
+      objective
+    });
+    if (lat) params.append('latitude', lat);
+    if (lon) params.append('longitude', lon);
+    if (season) params.append('season', season);
+
+    const res = await fetch(`${BASE_URL}/api/recommend-crops?${params.toString()}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    console.warn('Crop recommendation failed, using fallback:', err);
+    return {
+      status: 'success',
+      ai_provider: 'simulation',
+      season: 'Kharif / Post-Monsoon',
+      farmer_objective: objective,
+      recommended_crops: [
+        {
+          crop: 'Bengal Gram / Chickpea (శనగ / चना)',
+          reason: 'Deep taproot penetrates heavy clay soil, breaks subsoil compaction, and fixes atmospheric nitrogen.',
+          soil_fit: 'Ideal for deep vertisols and black soils with good moisture retention.',
+          weather_fit: 'Requires minimal supplemental irrigation in current temperatures.',
+          water_need: 'Low to Moderate',
+          risk: 'LOW'
+        },
+        {
+          crop: 'Maize (మొక్కజొన్న / मक्का)',
+          reason: 'Fast-growing cereal that makes efficient use of residual fertility and provides abundant fodder.',
+          soil_fit: 'Thrives in clay loams with moderate organic carbon.',
+          weather_fit: 'Well-suited to prevailing ambient climate.',
+          water_need: 'Moderate',
+          risk: 'MEDIUM'
+        }
+      ],
+      regenerative_options: [
+        {
+          practice: 'Legume Crop Rotation (Chickpea/Blackgram)',
+          benefit: 'Biological nitrogen fixation (~30–40 kg N/ha) and interruption of host cycles for whiteflies.',
+          reason: 'Rotating Solanaceous cash crops restores natural fertility.'
+        },
+        {
+          practice: 'In-situ Crop Residue Retention & Mulching',
+          benefit: 'Reduces surface moisture evaporation and buffers soil temperatures.',
+          reason: 'Prevents soil crusting and deep cracking in heavy black soils.'
+        }
+      ],
+      agronomic_summary: 'Pulse crop rotation and organic residue retention are recommended to restore soil nitrogen and break vector cycles.'
+    };
+  }
+}
+
+export async function fetchUnifiedFarmIntelligence(lat = null, lon = null, crop = 'Chilli', language = 'en') {
+  try {
+    const params = new URLSearchParams({ crop: crop || 'Chilli', language });
+    if (lat) params.append('latitude', lat);
+    if (lon) params.append('longitude', lon);
+    const res = await fetch(`${BASE_URL}/api/farm-intelligence?${params.toString()}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    console.warn('Unified farm intelligence fetch failed:', err);
+    return null;
+  }
+}
+
 export async function analyzeCropImage(fileOrBlob, language = 'en', cropHint = '', lat = null, lon = null) {
   const formData = new FormData();
   formData.append('file', fileOrBlob);
