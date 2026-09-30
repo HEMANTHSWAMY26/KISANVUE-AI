@@ -68,7 +68,21 @@ async def run_tests():
     print("Total Scans:", dash.total_scans, "Alerts:", dash.high_risk_alerts, "Top Crops:", len(dash.top_risk_crops))
     print("Is Demo Data:", dash.is_demo_data)
 
-    print("\nALL BACKEND UNIT TESTS PASSED SUCCESSFULLY!")
+    print("\n--- 7. Testing Satellite Intelligence Service (Sentinel-2 / Demo) ---")
+    from app.satellite_service import get_satellite_intelligence
+    sat_guntur = await get_satellite_intelligence(latitude=16.3067, longitude=80.4365)
+    print("Guntur Satellite Mode:", sat_guntur["mode"], "Source:", sat_guntur["source"])
+    print("Observation Date:", sat_guntur["observation_date"])
+    print("NDVI:", sat_guntur["ndvi"], "NDWI:", sat_guntur["ndwi"])
+    print("Vegetation Status:", sat_guntur["vegetation_status"], "Trend:", sat_guntur["vegetation_trend"])
+    print("Summary:", sat_guntur["crop_health_summary"])
+    assert sat_guntur["available"] is True
+    assert sat_guntur["ndvi"] is not None
+    assert sat_guntur["ndwi"] is not None
+    assert sat_guntur["vegetation_status"] in ["HEALTHY", "MODERATE", "STRESSED", "CRITICAL"]
+    assert sat_guntur["vegetation_trend"] in ["IMPROVING", "STABLE", "DECLINING", "INCONCLUSIVE"]
+
+    print("\nALL BACKEND UNIT TESTS (INCLUDING SATELLITE INTELLIGENCE) PASSED SUCCESSFULLY!")
 
 if __name__ == "__main__":
     asyncio.run(run_tests())

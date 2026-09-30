@@ -21,6 +21,7 @@ from app.config import (
 from app.schemas import (
     WeatherResponse,
     CropAnalysisResponse,
+    SatelliteResponse,
     VerifyCropResponse,
     ChatAdvisoryRequest,
     ChatAdvisoryResponse,
@@ -35,6 +36,7 @@ from app.services.gemini_service import (
     test_gemini_direct
 )
 from app.services.dashboard_service import get_dashboard_telemetry
+from app.satellite_service import get_satellite_intelligence
 
 # Setup Logging
 logging.basicConfig(
@@ -106,6 +108,31 @@ async def weather_endpoint(
     return await get_current_weather(lat=lat, lon=lon, location_name=location_name)
 
 
+@app.get("/api/satellite", response_model=SatelliteResponse, tags=["Satellite"])
+async def satellite_endpoint(
+    latitude: Optional[float] = Query(None, description="Field latitude"),
+    longitude: Optional[float] = Query(None, description="Field longitude"),
+    lat: Optional[float] = Query(None, description="Latitude shorthand alias"),
+    lon: Optional[float] = Query(None, description="Longitude shorthand alias"),
+    start_date: Optional[str] = Query(None, description="Observation start date (YYYY-MM-DD)"),
+    end_date: Optional[str] = Query(None, description="Observation end date (YYYY-MM-DD)")
+):
+    """
+    Sentinel-2 Satellite Intelligence & Crop Health Context.
+    Provides NDVI, NDWI, explainable vegetation status, and vegetation trend.
+    Falls back cleanly to domain-calibrated Demo mode with explicit demo labeling
+    if real Sentinel Hub credentials are not configured.
+    """
+    target_lat = latitude if latitude is not None else lat
+    target_lon = longitude if longitude is not None else lon
+    return await get_satellite_intelligence(
+        latitude=target_lat,
+        longitude=target_lon,
+        start_date=start_date,
+        end_date=end_date
+    )
+
+
 @app.post("/api/analyze-crop", response_model=CropAnalysisResponse, tags=["Analysis"])
 async def analyze_crop_endpoint(
     file: UploadFile = File(...),
@@ -139,9 +166,11 @@ async def analyze_crop_endpoint(
             detail="Image size exceeds the 20MB limit. Please provide a lighter image."
         )
 
-    # 2. Get Weather Context
+    # 2. Get Weather & Satellite Environmental Context
     weather_res = await get_current_weather(lat=lat, lon=lon)
     weather_dict = weather_res.model_dump()
+
+    satellite_res = await get_satellite_intelligence(latitude=lat, longitude=lon)
 
     # 3. Analyze with Gemini Service
     filename = file.filename or crop_hint or "crop.jpg"
@@ -150,7 +179,8 @@ async def analyze_crop_endpoint(
         mime_type=file.content_type or "image/jpeg",
         language=language,
         filename_hint=f"{filename} {crop_hint}",
-        weather_context=weather_dict
+        weather_context=weather_dict,
+        satellite_context=satellite_res
     )
 
     return result

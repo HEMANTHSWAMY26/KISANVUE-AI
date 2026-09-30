@@ -49,6 +49,18 @@ export const translations = {
     weatherImpact: "Micro-Climate Impact Alert",
     escalateNotice: "Escalation to KVK / Agronomist Recommended",
     
+    // Satellite Intelligence
+    satelliteTitle: "Satellite Intelligence",
+    sentinelContext: "Sentinel-2 Satellite Context",
+    observationDate: "Observation Date",
+    ndviLabel: "NDVI (Vegetation Index)",
+    ndwiLabel: "NDWI (Moisture Context)",
+    vegetationStatusLabel: "Vegetation Status",
+    vegetationTrendLabel: "Vegetation Trend",
+    demoSatelliteBadge: "Demo Satellite Intelligence",
+    realSatelliteBadge: "Sentinel-2 Live",
+    satelliteNotice: "Environmental context for field canopy, not a clinical pathology diagnosis.",
+    
     // Verify Again Workflow
     verifyTitle: "Crop Health Verification Engine",
     verifySubtitle: "Compare baseline diagnostic scan against follow-up field photo to verify treatment efficacy.",
@@ -138,6 +150,18 @@ export const translations = {
     weatherImpact: "వాతావరణ ప్రభావ హెచ్చరిక",
     escalateNotice: "వ్యవసాయ విస్తరణ అధికారి లేదా కేవీకేను సంప్రదించాలి",
     
+    // Satellite Intelligence
+    satelliteTitle: "ఉపగ్రహ సమాచారం (Satellite Intelligence)",
+    sentinelContext: "సెంటినెల్-2 ఉపగ్రహ విశ్లేషణ",
+    observationDate: "పరిశీలన తేదీ",
+    ndviLabel: "NDVI (పైరు పచ్చదనం సూచిక)",
+    ndwiLabel: "NDWI (తేమ సందర్భ సూచిక)",
+    vegetationStatusLabel: "పైరు స్థితిగతులు",
+    vegetationTrendLabel: "పైరు పెరుగుదల సరళి",
+    demoSatelliteBadge: "డెమో ఉపగ్రహ సమాచారం",
+    realSatelliteBadge: "సెంటినెల్-2 ప్రత్యక్ష సమాచారం",
+    satelliteNotice: "పొలంలోని పైరు విస్తీర్ణ సూచిక మాత్రమే; ఇది ల్యాబ్ రోగ నిర్ధారణ కాదు.",
+    
     // Verify Again Workflow
     verifyTitle: "పంట పురోగతి ధృవీకరణ వ్యవస్థ",
     verifySubtitle: "మొదటి స్కాన్ మరియు ప్రస్తుత ఫోటోను పోల్చి పంట ఎంతవరకు కోలుకుందో తెలుసుకోండి.",
@@ -226,6 +250,18 @@ export const translations = {
     preventiveActions: "दीर्घकालिक बचाव के तरीके",
     weatherImpact: "मौसम का प्रभाव और चेतावनी",
     escalateNotice: "कृषि विज्ञान केंद्र (KVK) के विशेषज्ञ से संपर्क करें",
+    
+    // Satellite Intelligence
+    satelliteTitle: "उपग्रह निगरानी (Satellite Intelligence)",
+    sentinelContext: "सेंटिनल-2 उपग्रह विश्लेषण",
+    observationDate: "निरीक्षण तिथि",
+    ndviLabel: "NDVI (हरियाली सूचकांक)",
+    ndwiLabel: "NDWI (नमी संदर्भ सूचकांक)",
+    vegetationStatusLabel: "फसल स्वास्थ्य स्थिति",
+    vegetationTrendLabel: "फसल विकास रुझान",
+    demoSatelliteBadge: "डेमो उपग्रह डेटा",
+    realSatelliteBadge: "सेंटिनल-2 लाइव डेटा",
+    satelliteNotice: "खेत की हरियाली का पर्यावरणीय संदर्भ; यह लैब आधारित रोग निदान नहीं है।",
     
     // Verify Again Workflow
     verifyTitle: "फसल स्वास्थ्य पुनर्परीक्षण इंजन (Verify Again)",

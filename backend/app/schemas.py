@@ -27,6 +27,7 @@ class CropAnalysisResponse(BaseModel):
     monitoring_period: str = Field(default="48 hours", example="48 hours")
     escalation_required: bool = Field(default=False)
     weather_context: Optional[Dict[str, Any]] = None
+    satellite_context: Optional[Dict[str, Any]] = None
     multilingual: Dict[str, Any] = Field(default_factory=dict)
     ai_provider: str = Field(default="simulation", description="'gemini' or 'simulation'")
     limitations: str = Field(
@@ -35,6 +36,26 @@ class CropAnalysisResponse(BaseModel):
     disclaimer: str = Field(
         default="AI-assisted agricultural advisory. For severe or rapidly spreading crop problems, consult a qualified agricultural officer or KVK scientist."
     )
+
+class SatelliteResponse(BaseModel):
+    available: bool = Field(..., description="Whether satellite intelligence is available")
+    mode: str = Field(..., description="'real', 'demo', or 'unavailable'")
+    source: str = Field(default="Sentinel-2", description="Data source name e.g. Sentinel-2")
+    latitude: float
+    longitude: float
+    observation_date: Optional[str] = None
+    ndvi: Optional[float] = None
+    ndwi: Optional[float] = None
+    vegetation_status: Optional[str] = None # HEALTHY, MODERATE, STRESSED, CRITICAL
+    vegetation_trend: Optional[str] = None # IMPROVING, STABLE, DECLINING, INCONCLUSIVE
+    crop_health_summary: Optional[str] = None
+    confidence: Optional[str] = None # HIGH, MEDIUM, LOW
+    is_demo: bool = Field(default=False)
+    message: Optional[str] = None
+    zone_reference: Optional[str] = None
+    historical_observations: Optional[List[Dict[str, Any]]] = None
+    interpretation_notes: Optional[Dict[str, str]] = None
+    limitations: Optional[str] = None
 
 class VerifyCropResponse(BaseModel):
     crop: str = Field(..., example="Chilli")

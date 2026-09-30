@@ -53,6 +53,37 @@ export async function fetchLiveWeather(lat, lon) {
   }
 }
 
+export async function fetchSatelliteIntelligence(lat, lon) {
+  try {
+    const query = lat && lon ? `?latitude=${lat}&longitude=${lon}` : '';
+    const res = await fetch(`${BASE_URL}/api/satellite${query}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    console.warn('Satellite intelligence lookup failed, using simulated fallback:', err);
+    return {
+      available: true,
+      mode: 'demo',
+      source: 'Sentinel-2 (Simulated)',
+      latitude: lat || 16.3067,
+      longitude: lon || 80.4365,
+      observation_date: '2026-09-28',
+      ndvi: 0.72,
+      ndwi: 0.31,
+      vegetation_status: 'HEALTHY',
+      vegetation_trend: 'STABLE',
+      crop_health_summary: 'Simulated satellite context: Vegetation signal appears relatively strong across the monitored field sector. Water-related vegetation context shows adequate canopy hydration reflectance.',
+      confidence: 'MEDIUM',
+      is_demo: true,
+      message: 'Demo Satellite Intelligence',
+      interpretation_notes: {
+        ndvi_context: 'Higher vegetation signal indicates stronger relative canopy activity.',
+        ndwi_context: 'Water-related vegetation context indicator.'
+      }
+    };
+  }
+}
+
 export async function analyzeCropImage(fileOrBlob, language = 'en', cropHint = '', lat = null, lon = null) {
   const formData = new FormData();
   formData.append('file', fileOrBlob);

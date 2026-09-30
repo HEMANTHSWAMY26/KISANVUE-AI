@@ -1,4 +1,3 @@
-import React from 'react';
 import { 
   BarChart3, 
   AlertTriangle, 
@@ -9,8 +8,9 @@ import {
   TrendingUp,
   Info
 } from 'lucide-react';
+import SatelliteIntelligence from './SatelliteIntelligence';
 
-export default function IntelligenceDashboard({ telemetry, t }) {
+export default function IntelligenceDashboard({ telemetry, satelliteData, t }) {
   if (!telemetry) return null;
 
   const topCrops = telemetry.top_risk_crops || [];
@@ -110,6 +110,13 @@ export default function IntelligenceDashboard({ telemetry, t }) {
           </div>
         </div>
       </div>
+
+      {/* Sentinel-2 Satellite Intelligence Telemetry */}
+      {satelliteData && (
+        <div className="dash-satellite-wrap mt-4">
+          <SatelliteIntelligence satelliteData={satelliteData} t={t} />
+        </div>
+      )}
 
       {/* Demo Data Compliance Notice Banner */}
       <div className="demo-notice-banner glass-card mt-4">

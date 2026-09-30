@@ -7,7 +7,8 @@ import {
   verifyCropRecovery, 
   askAgronomist, 
   fetchDashboardTelemetry, 
-  fetchSampleCrops 
+  fetchSampleCrops,
+  fetchSatelliteIntelligence
 } from './services/api';
 
 import Header from './components/Header';
@@ -27,6 +28,7 @@ export default function App() {
   // Data States
   const [systemStatus, setSystemStatus] = useState({ gemini_ready: false });
   const [weather, setWeather] = useState(null);
+  const [satelliteData, setSatelliteData] = useState(null);
   const [sampleCrops, setSampleCrops] = useState([]);
   const [telemetry, setTelemetry] = useState(null);
 
@@ -50,18 +52,20 @@ export default function App() {
   // Active translation dictionary
   const t = translations[currentLang] || translations.en;
 
-  // Initial Load: Health, Weather, Samples, Dashboard
+  // Initial Load: Health, Weather, Satellite, Samples, Dashboard
   useEffect(() => {
     async function initApp() {
       try {
-        const [healthRes, weatherRes, samplesRes, dashRes] = await Promise.all([
+        const [healthRes, weatherRes, satRes, samplesRes, dashRes] = await Promise.all([
           checkSystemHealth(),
           fetchLiveWeather(),
+          fetchSatelliteIntelligence(),
           fetchSampleCrops(),
           fetchDashboardTelemetry()
         ]);
         setSystemStatus(healthRes);
         setWeather(weatherRes);
+        setSatelliteData(satRes);
         setSampleCrops(samplesRes);
         setTelemetry(dashRes);
       } catch (err) {
@@ -91,6 +95,9 @@ export default function App() {
       // Attach preview image object URL if not already present
       const previewUrl = typeof fileOrBlob === 'string' ? fileOrBlob : URL.createObjectURL(fileOrBlob);
       result.imagePreview = previewUrl;
+      if (!result.satellite_context && satelliteData) {
+        result.satellite_context = satelliteData;
+      }
 
       setTimeout(() => {
         setAnalysisResult(result);
@@ -226,6 +233,7 @@ export default function App() {
           {activeTab === 'dashboard' && (
             <IntelligenceDashboard 
               telemetry={telemetry}
+              satelliteData={satelliteData}
               t={t}
             />
           )}

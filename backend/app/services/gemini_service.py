@@ -351,13 +351,15 @@ async def analyze_crop_image(
     mime_type: str,
     language: str = "en",
     filename_hint: str = "",
-    weather_context: Optional[Dict[str, Any]] = None
+    weather_context: Optional[Dict[str, Any]] = None,
+    satellite_context: Optional[Dict[str, Any]] = None
 ) -> CropAnalysisResponse:
     """
     Multimodal crop disease detection using Google Gemini SDK.
     If GEMINI_API_KEY is configured, calls the live Gemini model and sets ai_provider='gemini'.
     If the API call fails or no key is configured, uses the domain knowledge base
     and sets ai_provider='simulation' for complete transparency.
+    Optionally receives satellite environmental context (NDVI, NDWI, vegetation status, trend).
     """
     lang_key = language.lower() if language else "en"
     if lang_key not in ["en", "te", "hi"]:
@@ -373,10 +375,25 @@ async def analyze_crop_image(
                 f"Precipitation Probability: {weather_context.get('rain_chance', '30%')}."
             )
 
+        satellite_summary = ""
+        if satellite_context and satellite_context.get("available"):
+            satellite_summary = (
+                f"Satellite Vegetation Context ({satellite_context.get('source', 'Sentinel-2')} [{satellite_context.get('mode', 'real')}]):\n"
+                f"- Observation Date: {satellite_context.get('observation_date', 'N/A')}\n"
+                f"- NDVI (Vegetation Signal): {satellite_context.get('ndvi', 'N/A')}\n"
+                f"- NDWI (Moisture-Context Indicator): {satellite_context.get('ndwi', 'N/A')}\n"
+                f"- Vegetation Status: {satellite_context.get('vegetation_status', 'N/A')}\n"
+                f"- Vegetation Trend: {satellite_context.get('vegetation_trend', 'INCONCLUSIVE')}\n"
+                "Satellite Data Constraint: Only cite these provided satellite values as contextual background. Do NOT invent satellite figures."
+            )
+        else:
+            satellite_summary = "Satellite Intelligence: satellite_available = false (No satellite data available; do NOT invent satellite metrics)."
+
         prompt = (
             "You are 'KisanVue AI', an expert agricultural pathologist, agronomist, and crop doctor "
             "specializing in smallholder Indian agriculture (e.g. Chilli, Cotton, Rice, Tomato, Wheat).\n\n"
             f"{weather_summary}\n\n"
+            f"{satellite_summary}\n\n"
             "Carefully analyze this crop photo and provide a strictly valid JSON diagnostic response:\n"
             "{\n"
             '  "crop": "string",\n'
@@ -460,6 +477,7 @@ async def analyze_crop_image(
                         monitoring_period=parsed.get("monitoring_period", "48 hours"),
                         escalation_required=bool(parsed.get("escalation_required", risk_level == "HIGH")),
                         weather_context=weather_context,
+                        satellite_context=satellite_context,
                         multilingual=ml_data,
                         ai_provider="gemini",
                         limitations="Based on visual inspection of submitted photo. Not a laboratory or culture-plate diagnosis.",
@@ -486,6 +504,7 @@ async def analyze_crop_image(
         monitoring_period=kb["monitoring_period"],
         escalation_required=kb["escalation_required"],
         weather_context=weather_context,
+        satellite_context=satellite_context,
         multilingual=selected_ml,
         ai_provider="simulation",
         limitations="Based on visual inspection of submitted photo. Not a laboratory or culture-plate diagnosis.",

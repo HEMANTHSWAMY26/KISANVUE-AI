@@ -13,6 +13,7 @@ import {
   CheckSquare
 } from 'lucide-react';
 import AudioPlayer from './AudioPlayer';
+import SatelliteIntelligence from './SatelliteIntelligence';
 
 export default function AnalysisResult({ 
   result, 
@@ -185,6 +186,11 @@ export default function AnalysisResult({
           </div>
         )}
       </div>
+
+      {/* Satellite Environmental Context (Sentinel-2 / Demo Mode) */}
+      {result.satellite_context && (
+        <SatelliteIntelligence satelliteData={result.satellite_context} t={t} />
+      )}
 
       {/* Signature Action Bar: Verify Again & Ask Agronomist */}
       <div className="result-action-footer glass-card">
