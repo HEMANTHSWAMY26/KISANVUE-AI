@@ -49,4 +49,8 @@ _source_repos/
 # Operating System Files
 .DS_Store
 Thumbs.db
+
+# Dev capture scripts & screenshots
+capture_*.py
+screenshots/
 desktop.ini

@@ -522,29 +522,149 @@ a:hover { color: var(--text-primary); }
   gap: 0.75rem;
 }
 
-.weather-location {
+.weather-location-controls {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  flex-wrap: wrap;
+  gap: 0.65rem;
 }
 
-.weather-icon-pin {
-  color: var(--accent-mint);
+.location-picker-wrapper, .crop-picker-wrapper {
+  position: relative;
+}
+
+.location-picker-btn, .crop-picker-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 0.35rem 0.75rem;
+  color: var(--text-primary);
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.location-picker-btn:hover, .crop-picker-btn:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--accent-mint);
 }
 
 .location-name {
   font-weight: 600;
-  font-size: 0.95rem;
+  font-size: 0.92rem;
   color: var(--text-primary);
+}
+
+.crop-picker-name {
+  font-weight: 600;
+  font-size: 0.88rem;
+  color: var(--accent-mint);
+}
+
+.location-dropdown-panel, .crop-dropdown-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 50;
+  min-width: 310px;
+  padding: 0.85rem;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.6);
+  border-color: var(--accent-mint);
+}
+
+.crop-dropdown-panel {
+  min-width: 240px;
+}
+
+.dropdown-section-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+  margin-bottom: 0.5rem;
+}
+
+.location-presets-list, .crop-presets-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  max-height: 250px;
+  overflow-y: auto;
+}
+
+.preset-loc-item, .preset-crop-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0.45rem 0.65rem;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: 0.84rem;
+  cursor: pointer;
+  text-align: left;
+  transition: all var(--transition-fast);
+}
+
+.preset-loc-item:hover, .preset-crop-item:hover, .preset-loc-item.active, .preset-crop-item.active {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.4);
+}
+
+.preset-loc-meta {
+  display: flex;
+  flex-direction: column;
+}
+
+.dropdown-divider {
+  height: 1px;
+  background: var(--border-subtle);
+  margin: 0.65rem 0;
+}
+
+.location-gps-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+}
+
+.sync-badge {
+  font-size: 0.7rem;
+  color: var(--accent-amber);
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  padding: 0.15rem 0.5rem;
+  border-radius: var(--radius-full);
+  animation: pulse-glow 1.5s infinite;
 }
 
 .weather-tag {
   font-size: 0.72rem;
   background: rgba(52, 211, 153, 0.15);
   color: var(--accent-mint);
-  padding: 0.15rem 0.5rem;
+  padding: 0.2rem 0.6rem;
   border-radius: var(--radius-full);
   font-weight: 600;
+}
+
+.hero-cta-row {
+  margin-top: 1.25rem;
+  display: flex;
+  justify-content: center;
+}
+
+.btn-hero-scan {
+  font-size: 1.05rem;
+  padding: 0.75rem 1.85rem;
+  border-radius: var(--radius-full);
 }
 
 .weather-metrics {
@@ -2281,6 +2401,32 @@ a:hover { color: var(--text-primary); }
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--text-primary);
+}
+
+.snapshot-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.btn-icon-toggle {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--text-dim);
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-icon-toggle:hover {
+  background: var(--bg-card-hover);
+  color: var(--text-primary);
+  border-color: var(--accent-mint);
 }
 
 .snapshot-location-pill {

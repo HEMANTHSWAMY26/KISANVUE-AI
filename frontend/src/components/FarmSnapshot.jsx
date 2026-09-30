@@ -1,7 +1,9 @@
-import React from 'react';
-import { MapPin, CloudSun, Radio, Layers, Sprout, RefreshCw, CheckCircle, Info } from 'lucide-react';
+import React, { useState } from 'react';
+import { MapPin, CloudSun, Radio, Layers, Sprout, RefreshCw, CheckCircle, Info, ChevronDown, ChevronUp } from 'lucide-react';
 
 export default function FarmSnapshot({ farmData, t = {} }) {
+  const [isExpanded, setIsExpanded] = useState(true);
+
   if (!farmData) return null;
 
   const loc = farmData.location_name || 'Guntur, Andhra Pradesh';
@@ -20,13 +22,25 @@ export default function FarmSnapshot({ farmData, t = {} }) {
           <span className="snapshot-emoji">🌾</span>
           <h3>{t.farmSnapshotTitle || 'UNIFIED FARM INTELLIGENCE'}</h3>
         </div>
-        <div className="snapshot-location-pill">
-          <MapPin size={14} className="text-emerald" />
-          <span>{loc}</span>
+        <div className="snapshot-header-actions">
+          <div className="snapshot-location-pill">
+            <MapPin size={14} className="text-emerald" />
+            <span>{loc}</span>
+          </div>
+          <button 
+            type="button" 
+            className="btn-icon-toggle"
+            onClick={() => setIsExpanded(!isExpanded)}
+            title={isExpanded ? 'Collapse Snapshot' : 'Expand Snapshot'}
+          >
+            {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          </button>
         </div>
       </div>
 
-      <div className="snapshot-layers-grid">
+      {isExpanded && (
+        <div className="snapshot-expanded-content animate-fade-in">
+          <div className="snapshot-layers-grid">
         {/* Weather Layer */}
         <div className="snapshot-layer-cell">
           <div className="layer-cell-top">
@@ -97,6 +111,8 @@ export default function FarmSnapshot({ farmData, t = {} }) {
           <p className="regen-bar-benefit">
             {topRegen.benefit}
           </p>
+        </div>
+      )}
         </div>
       )}
     </div>

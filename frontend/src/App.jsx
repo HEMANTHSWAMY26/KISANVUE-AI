@@ -30,6 +30,16 @@ export default function App() {
   
   // Data States
   const [systemStatus, setSystemStatus] = useState({ gemini_ready: false });
+  const [currentLocation, setCurrentLocation] = useState({
+    name: 'Guntur, Andhra Pradesh (Chilli Hub)',
+    lat: 16.3067,
+    lon: 80.4365,
+    state: 'Andhra Pradesh',
+    district: 'Guntur'
+  });
+  const [selectedCrop, setSelectedCrop] = useState('Chilli');
+  const [isLoadingContext, setIsLoadingContext] = useState(false);
+
   const [weather, setWeather] = useState(null);
   const [satelliteData, setSatelliteData] = useState(null);
   const [soilData, setSoilData] = useState(null);
@@ -48,7 +58,7 @@ export default function App() {
   const [verificationResult, setVerificationResult] = useState(null);
 
   // Chat / Agronomist Context
-  const [cropContext, setCropContext] = useState('');
+  const [cropContext, setCropContext] = useState('Chilli');
   const [conditionContext, setConditionContext] = useState('');
 
   // Modals
@@ -57,32 +67,63 @@ export default function App() {
   // Active translation dictionary
   const t = translations[currentLang] || translations.en;
 
-  // Initial Load: Health, Weather, Satellite, Soil, Unified Farm, Samples, Dashboard
+  // Initial Load & Dynamic Context Refresh whenever Location or Crop changes
   useEffect(() => {
-    async function initApp() {
+    let isCancelled = false;
+    async function loadEnvironmentalContext() {
+      setIsLoadingContext(true);
       try {
-        const [healthRes, weatherRes, satRes, soilRes, farmRes, samplesRes, dashRes] = await Promise.all([
+        const [weatherRes, satRes, soilRes, farmRes] = await Promise.all([
+          fetchLiveWeather(currentLocation.lat, currentLocation.lon),
+          fetchSatelliteIntelligence(currentLocation.lat, currentLocation.lon),
+          fetchSoilIntelligence(currentLocation.lat, currentLocation.lon),
+          fetchUnifiedFarmIntelligence(currentLocation.lat, currentLocation.lon, selectedCrop, currentLang)
+        ]);
+        if (!isCancelled) {
+          setWeather(weatherRes);
+          setSatelliteData(satRes);
+          setSoilData(soilRes);
+          setFarmSnapshot(farmRes);
+        }
+      } catch (err) {
+        console.warn('Environmental context sync notice:', err);
+      } finally {
+        if (!isCancelled) setIsLoadingContext(false);
+      }
+    }
+    loadEnvironmentalContext();
+    return () => { isCancelled = true; };
+  }, [currentLocation.lat, currentLocation.lon, selectedCrop, currentLang]);
+
+  // One-time static bootstrap (Health, Samples, Dashboard telemetry)
+  useEffect(() => {
+    async function bootstrap() {
+      try {
+        const [healthRes, samplesRes, dashRes] = await Promise.all([
           checkSystemHealth(),
-          fetchLiveWeather(),
-          fetchSatelliteIntelligence(),
-          fetchSoilIntelligence(),
-          fetchUnifiedFarmIntelligence(),
           fetchSampleCrops(),
           fetchDashboardTelemetry()
         ]);
         setSystemStatus(healthRes);
-        setWeather(weatherRes);
-        setSatelliteData(satRes);
-        setSoilData(soilRes);
-        setFarmSnapshot(farmRes);
         setSampleCrops(samplesRes);
         setTelemetry(dashRes);
       } catch (err) {
-        console.warn('Initialization notice:', err);
+        console.warn('Bootstrap notice:', err);
       }
     }
-    initApp();
+    bootstrap();
   }, []);
+
+  // Handler: Location Change
+  const handleLocationChange = (newLoc) => {
+    setCurrentLocation(newLoc);
+  };
+
+  // Handler: Crop Selection Change
+  const handleCropChange = (newCrop) => {
+    setSelectedCrop(newCrop);
+    setCropContext(newCrop);
+  };
 
   // Handler: Analyze Crop Image
   const handleAnalyzeCrop = async (fileOrBlob, hint = '') => {
@@ -97,7 +138,14 @@ export default function App() {
     }, 450);
 
     try {
-      const result = await analyzeCropImage(fileOrBlob, currentLang, hint);
+      const activeHint = hint || selectedCrop;
+      const result = await analyzeCropImage(
+        fileOrBlob, 
+        currentLang, 
+        activeHint, 
+        currentLocation.lat, 
+        currentLocation.lon
+      );
       clearInterval(stepInterval);
       setScanStep(5);
       
@@ -188,8 +236,16 @@ export default function App() {
 
       <main className="main-content">
         <div className="app-container">
-          {/* Micro-Climate Weather Context Bar */}
-          <WeatherBanner weather={weather} />
+          {/* Micro-Climate Weather Context Bar with Dynamic Location & Crop Controls */}
+          <WeatherBanner 
+            weather={weather}
+            currentLocation={currentLocation}
+            onLocationChange={handleLocationChange}
+            selectedCrop={selectedCrop}
+            onCropChange={handleCropChange}
+            isLoadingContext={isLoadingContext}
+            t={t}
+          />
 
           {/* Tab 1: Crop Scanner & Diagnosis */}
           {activeTab === 'scan' && (

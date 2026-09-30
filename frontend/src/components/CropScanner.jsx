@@ -76,6 +76,12 @@ export default function CropScanner({
       <div className="scanner-hero text-center">
         <h1 className="hero-title">{t.heroTitle}</h1>
         <p className="hero-subtitle">{t.heroSubtitle}</p>
+        <div className="hero-cta-row">
+          <a href="#crop-scanner-viewport" className="btn btn-primary btn-hero-scan">
+            <Camera size={18} />
+            <span>{t.btnScanCrop || 'Scan Your Crop'}</span>
+          </a>
+        </div>
       </div>
 
       {/* Quick 1-Click Test Samples */}
@@ -105,7 +111,7 @@ export default function CropScanner({
       </div>
 
       {/* Upload & Viewport Area */}
-      <div className="scanner-main-card glass-card">
+      <div id="crop-scanner-viewport" className="scanner-main-card glass-card">
         {!previewUrl ? (
           <div 
             className={`dropzone ${isDragging ? 'dragging' : ''}`}
